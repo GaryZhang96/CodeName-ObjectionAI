@@ -25,7 +25,6 @@ export function VerdictScreen() {
   const {
     verdict,
     currentCase,
-    player,
     addXP,
     addMoney,
     applyVerdictRewards,
@@ -354,4 +353,3 @@ export function VerdictScreen() {
     </div>
   );
 }
-

@@ -8,7 +8,6 @@ import type {
   CourtroomMessage, 
   CourtroomAIResponse,
   VerdictResult,
-  WitnessEmotion,
 } from '@/types';
 import { callAIWithRetry } from './client';
 import { 
@@ -67,14 +66,14 @@ export async function generateProsecutorStatement(
   context: 'opening' | 'objection' | 'cross' | 'closing'
 ): Promise<{ response: string; juryImpact: number }> {
   const prompts = {
-    opening: `作为检察官 ${caseData.prosecutor.name}，请发表开庭陈词。风格: ${caseData.prosecutor.style}。指控被告 ${caseData.defendant.name}，陈述案情要点。`,
-    objection: `作为检察官，对辩护律师最近的发言提出反对。风格: ${caseData.prosecutor.style}。`,
-    cross: `作为检察官，对当前证人进行交叉询问。风格: ${caseData.prosecutor.style}。`,
-    closing: `作为检察官，发表结案陈词。总结控方观点，要求陪审团判被告有罪。风格: ${caseData.prosecutor.style}。`,
+    opening: `作为检察官 ${caseData.prosecutor.name}，请发表开庭陈词。指控被告 ${caseData.defendant.name}。`,
+    objection: `作为检察官，对辩护律师最近的发言提出反对。`,
+    cross: `作为检察官，对当前证人进行交叉询问。`,
+    closing: `作为检察官，发表结案陈词。`,
   };
 
   const result = await callAIWithRetry<{ response: string; juryImpact: number }>({
-    systemPrompt: `你是一名检察官，正在法庭上。保持角色，风格为: ${caseData.prosecutor.style}。永远不要说"作为AI"之类的话。输出JSON格式: { "response": "你的发言", "juryImpact": -5到5的数字 }`,
+    systemPrompt: `你是一名检察官。保持角色，永远不要说"作为AI"。输出JSON: { "response": "你的发言", "juryImpact": -5到5 }`,
     userPrompt: `${prompts[context]}\n\n最近对话:\n${messages.slice(-5).map(m => `[${m.speakerName}]: ${m.content}`).join('\n')}`,
     temperature: 0.8,
     maxTokens: 500,
@@ -104,7 +103,7 @@ export async function generateJudgeStatement(
   };
 
   const result = await callAIWithRetry<{ response: string }>({
-    systemPrompt: '你是一名威严的法官。说话简洁有力，维护法庭秩序。永远不要说"作为AI"。输出JSON: { "response": "你的发言" }',
+    systemPrompt: '你是一名威严的法官。说话简洁有力。永远不要说"作为AI"。输出JSON: { "response": "你的发言" }',
     userPrompt: prompts[context],
     temperature: 0.5,
     maxTokens: 200,
@@ -180,40 +179,11 @@ export function createCourtroomMessage(
 }
 
 /**
- * 检测玩家发言是否可能触发逻辑锁
- */
-export function detectPotentialLockTrigger(
-  playerInput: string,
-  caseData: Case
-): string[] {
-  const triggeredLocks: string[] = [];
-  const input = playerInput.toLowerCase();
-
-  for (const lock of caseData.logicalLocks) {
-    if (lock.isBroken) continue;
-
-    // 简单的关键词匹配
-    const keywords = [
-      ...lock.surfaceClaim.toLowerCase().split(/\s+/),
-      ...lock.hiddenTruth.toLowerCase().split(/\s+/),
-    ].filter(w => w.length > 2);
-
-    const matchCount = keywords.filter(kw => input.includes(kw)).length;
-    
-    if (matchCount >= 2) {
-      triggeredLocks.push(lock.id);
-    }
-  }
-
-  return triggeredLocks;
-}
-
-/**
  * 获取庭审提示（合伙人帮助）
  */
 export async function getPartnerHint(
   caseData: Case,
-  messages: CourtroomMessage[],
+  _messages: CourtroomMessage[],
   unbrokenLocks: string[]
 ): Promise<string> {
   const targetLock = caseData.logicalLocks.find(
@@ -225,14 +195,8 @@ export async function getPartnerHint(
   }
 
   const result = await callAIWithRetry<{ hint: string }>({
-    systemPrompt: '你是玩家的资深合伙人律师，给予简短但有用的提示。不要直接说出答案，只是引导方向。输出JSON: { "hint": "你的提示" }',
-    userPrompt: `
-案件: ${caseData.title}
-当前未破解的逻辑锁: ${targetLock.surfaceClaim}
-真相: ${targetLock.hiddenTruth}
-
-请给玩家一个暗示性的提示，帮助他们发现这个矛盾，但不要直接说出答案。
-`,
+    systemPrompt: '你是玩家的资深合伙人律师，给予简短但有用的提示。不要直接说出答案。输出JSON: { "hint": "你的提示" }',
+    userPrompt: `当前未破解的逻辑锁: ${targetLock.surfaceClaim}\n请给玩家一个暗示性的提示。`,
     temperature: 0.6,
     maxTokens: 200,
     responseFormat: 'json',
@@ -247,4 +211,3 @@ export async function getPartnerHint(
 function clampValue(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
-

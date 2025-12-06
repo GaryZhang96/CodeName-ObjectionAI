@@ -5,15 +5,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Scale, 
-  MessageCircle, 
-  AlertTriangle, 
   HelpCircle, 
   Send,
   User,
   Users,
   Gavel,
-  ChevronDown,
 } from 'lucide-react';
 import { Button, Panel, TextArea, Modal } from '@/components/ui';
 import { StatusBar, JuryPanel, EvidencePanel } from '@/components/game';
@@ -692,4 +688,3 @@ function MessageBubble({ message }: { message: CourtroomMessage }) {
     </motion.div>
   );
 }
-

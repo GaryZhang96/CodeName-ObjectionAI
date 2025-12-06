@@ -22,7 +22,6 @@ import {
   calculateXPToNextLevel, 
   getLawyerRank, 
   getJuryExpression,
-  generateId,
   clamp,
 } from '@/lib/utils';
 
@@ -63,7 +62,7 @@ const createInitialJury = (): JuryMember[] => {
   return Array.from({ length: 12 }, (_, i) => ({
     id: i + 1,
     sentiment: 0,
-    expression: '😐',
+    expression: '😐' as const,
   }));
 };
 
@@ -324,7 +323,7 @@ export const useGameStore = create<GameState>()(
       updateJurySentiment: (impact) => set((state) => {
         if (!state.courtroom) return state;
 
-        const newJury = state.courtroom.jury.map(member => {
+        const newJury: JuryMember[] = state.courtroom.jury.map(member => {
           // 随机波动，但趋势跟随 impact
           const variance = (Math.random() - 0.5) * 4;
           const newSentiment = clamp(
@@ -335,7 +334,7 @@ export const useGameStore = create<GameState>()(
           return {
             ...member,
             sentiment: newSentiment,
-            expression: getJuryExpression(newSentiment),
+            expression: getJuryExpression(newSentiment) as JuryMember['expression'],
           };
         });
 
@@ -491,4 +490,3 @@ export const selectPhase = (state: GameState) => state.phase;
 export const selectCurrentCase = (state: GameState) => state.currentCase;
 export const selectCourtroom = (state: GameState) => state.courtroom;
 export const selectIsLoading = (state: GameState) => state.isLoading;
-

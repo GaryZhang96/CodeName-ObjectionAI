@@ -7,7 +7,7 @@
  * 3. Structured Output: 强制 JSON 输出格式
  */
 
-import type { Case, CaseDifficulty, CourtroomMessage, WitnessEmotion } from '@/types';
+import type { Case, CaseDifficulty, CourtroomMessage } from '@/types';
 
 // ============================================
 // 案件生成提示词
@@ -84,123 +84,7 @@ export function getCaseGenerationPrompt(difficulty: CaseDifficulty, existingTitl
 已存在的案件标题: ${existingTitles.join(', ') || '无'}
 请确保新案件的主题和设定与这些不同。
 
-## 高质量案件示例
-
-这是一个优秀案件设计的参考（轮胎爆胎案）:
-
-\`\`\`json
-{
-  "title": "午夜枪声疑云",
-  "hiddenTruth": "根本没有枪声。目击者听到的是附近停车场一辆汽车轮胎爆胎的声音。被告当时确实在现场，但只是在捡拾掉落的钱包，完全是无辜的。",
-  "logicalLocks": [
-    {
-      "surfaceClaim": "证人声称在50米外清晰听到了枪声",
-      "hiddenTruth": "轮胎爆胎声与枪声相似，但在密闭空间内会有回声，而枪声不会",
-      "contradictionType": "physical",
-      "hint": "仔细询问证人当时的环境，声音是否有回声？"
-    }
-  ],
-  "evidence": [
-    {
-      "name": "停车场监控录像",
-      "content": "时间戳 23:47 显示一辆白色轿车在B区突然停下，右前轮明显瘪陷。画面中可见两名行人被声音惊吓后回头张望。",
-      "hasContradiction": true,
-      "contradictionHint": "爆胎时间与'枪声'时间完全吻合"
-    }
-  ]
-}
-\`\`\`
-
-## 你需要输出的 JSON 结构
-
-{
-  "id": "生成一个唯一ID，格式: case_时间戳_随机字符",
-  "title": "引人入胜的案件标题",
-  "type": "案件类型: theft/assault/fraud/murder/corporate/cyber",
-  "difficulty": "${difficulty}",
-  "summary": "一句话案件概要",
-  "detailedBackground": "3-5段详细的表面案情描述，包含一些误导信息",
-  "hiddenTruth": "完整的真相描述，解释实际发生了什么",
-  "trueGuiltyParty": "真正有罪的人是谁（可以是被告、其他证人、或者'无人有罪'）",
-  "defendant": {
-    "name": "被告姓名",
-    "age": 数字,
-    "occupation": "职业",
-    "background": "背景故事"
-  },
-  "evidence": [
-    {
-      "id": "evidence_1",
-      "name": "证据名称",
-      "type": "physical/testimonial/documentary/digital",
-      "description": "证据简介",
-      "content": "【重要】证据的具体内容，包含具体的数字、时间、描述",
-      "hasContradiction": true或false,
-      "contradictionHint": "如果hasContradiction为true，说明矛盾点",
-      "source": "证据来源",
-      "discovered": true,
-      "isKeyEvidence": true或false
-    }
-  ],
-  "witnesses": [
-    {
-      "id": "witness_1",
-      "name": "证人姓名",
-      "role": "身份/职业",
-      "age": 数字,
-      "personality": {
-        "honesty": 0-100,
-        "stability": 0-100,
-        "aggression": 0-100,
-        "intelligence": 0-100,
-        "traits": ["性格特征1", "性格特征2"]
-      },
-      "appearance": "外貌描述，用于生成像素头像",
-      "initialTestimony": "初始证词内容",
-      "hiddenSecret": "这个证人隐藏的秘密",
-      "weakPoints": ["弱点1", "弱点2"],
-      "relationships": {
-        "与其他角色的关系": "描述"
-      },
-      "currentEmotion": "calm",
-      "hasBroken": false
-    }
-  ],
-  "logicalLocks": [
-    {
-      "id": "lock_1",
-      "surfaceClaim": "表面陈述或证据显示的情况",
-      "hiddenTruth": "实际的真相",
-      "contradictionType": "time/location/physical/motive/testimony",
-      "hint": "给玩家的提示",
-      "isBroken": false,
-      "relatedEvidenceIds": ["evidence_1"],
-      "relatedWitnessIds": ["witness_1"]
-    }
-  ],
-  "prosecutor": {
-    "name": "检察官姓名",
-    "personality": "性格描述",
-    "style": "aggressive/methodical/theatrical/cunning"
-  },
-  "rewards": {
-    "baseXP": 基础经验值,
-    "baseMoney": 基础金钱,
-    "bonusConditions": [
-      {
-        "condition": "奖励条件描述",
-        "xpBonus": 额外经验,
-        "moneyBonus": 额外金钱
-      }
-    ]
-  }
-}
-
-请确保:
-1. 所有证据都有具体的、可查证的内容
-2. 逻辑锁的矛盾是可以通过询问和推理发现的
-3. 真相必须是完整的、自洽的
-4. 案件要有足够的戏剧性和趣味性`;
+请生成完整的案件 JSON。`;
 }
 
 // ============================================
@@ -234,20 +118,7 @@ export const COURTROOM_SYSTEM_PROMPT = `你是 Lex Machina 游戏的庭审主持
 1. **永远不要说** "作为AI语言模型" 或任何出戏的话
 2. **永远保持角色** - 你就是证人/检察官/法官
 3. **响应矛盾** - 如果玩家指出了真正的逻辑矛盾，证人必须有所反应
-4. **JSON 输出** - 必须按照指定格式输出
-
-## 响应格式
-
-{
-  "speaker": "witness" | "prosecutor" | "judge",
-  "response": "角色的台词（对话内容）",
-  "emotionChange": "calm" | "confident" | "nervous" | "defensive" | "angry" | "scared" | "broken" | null,
-  "juryImpact": -10到+10的数字（正数有利于被告，负数不利）,
-  "judgePatience": -20到+5的数字（负数减少耐心）,
-  "lockBroken": "如果玩家成功破解了某个逻辑锁，填入lock的id，否则为null",
-  "witnessBroken": true或false（证人是否崩溃招供）,
-  "systemHint": "可选的系统提示，给玩家一些反馈"
-}`;
+4. **JSON 输出** - 必须按照指定格式输出`;
 
 export function getCourtroomPrompt(
   caseData: Case,
@@ -270,7 +141,7 @@ export function getCourtroomPrompt(
 
 **案件**: ${caseData.title}
 **被告**: ${caseData.defendant.name}
-**隐藏真相** (用于判断玩家是否接近真相): ${caseData.hiddenTruth}
+**隐藏真相**: ${caseData.hiddenTruth}
 
 ## 当前状态
 
@@ -281,16 +152,10 @@ ${witness ? `
 **证人隐藏秘密**: ${witness.hiddenSecret}
 **证人弱点**: ${witness.weakPoints.join(', ')}
 **当前情绪**: ${witness.currentEmotion}
-**初始证词**: ${witness.initialTestimony}
 ` : ''}
 
 ## 未破解的逻辑锁
 ${unbrokeLocks.map(l => `- ${l.surfaceClaim} vs ${l.hiddenTruth}`).join('\n')}
-
-## 检察官信息
-**姓名**: ${caseData.prosecutor.name}
-**风格**: ${caseData.prosecutor.style}
-**性格**: ${caseData.prosecutor.personality}
 
 ## 最近对话
 ${recentMessages || '（对话开始）'}
@@ -298,15 +163,7 @@ ${recentMessages || '（对话开始）'}
 ## 玩家的最新发言
 "${playerInput}"
 
-## 你需要做的
-
-1. 判断玩家的发言是否触及了任何逻辑锁
-2. 以适当的角色（证人/检察官/法官）回应
-3. 如果玩家问了废话或无关问题，法官应该警告
-4. 如果玩家接近真相，证人应该变得紧张
-5. 如果玩家明确指出了矛盾并有证据支持，证人可能崩溃
-
-请输出 JSON 格式的响应:`;
+请输出 JSON 格式的响应。`;
 }
 
 // ============================================
@@ -325,70 +182,31 @@ export const VERDICT_SYSTEM_PROMPT = `你是 Lex Machina 游戏的最终裁判 A
 2. **有罪判决** 条件:
    - 玩家未能揭露真相
    - 陪审团倾向性低于 -30
-   - 或者被告确实有罪且玩家未能证明无辜
 
 3. **流审** 条件:
    - 法官耐心耗尽
-   - 玩家多次违规
-   - 陪审团意见严重分歧
-
-## 输出格式
-
-{
-  "outcome": "not_guilty" | "guilty" | "mistrial",
-  "reasoning": "判决理由（2-3段话）",
-  "finalJurySentiment": 最终陪审团倾向（-100到100）,
-  "rewards": {
-    "xp": 经验值,
-    "money": 金钱,
-    "bonuses": ["获得的奖励描述"]
-  },
-  "review": {
-    "keyMoments": ["精彩操作1", "精彩操作2"],
-    "mistakes": ["失误1", "失误2"],
-    "improvements": ["改进建议1", "改进建议2"],
-    "overallRating": "S" | "A" | "B" | "C" | "D" | "F"
-  }
-}`;
+   - 玩家多次违规`;
 
 export function getVerdictPrompt(
   caseData: Case,
-  messages: CourtroomMessage[],
+  _messages: CourtroomMessage[],
   finalJurySentiment: number,
   brokenLocks: string[],
   judgePatience: number
 ): string {
-  const keyMessages = messages.filter(m => m.isKeyMoment);
-  
   return `## 案件信息
 
 **案件**: ${caseData.title}
 **真相**: ${caseData.hiddenTruth}
-**真正有罪方**: ${caseData.trueGuiltyParty}
 **案件难度**: ${caseData.difficulty}
-**基础奖励**: XP ${caseData.rewards.baseXP}, 金钱 $${caseData.rewards.baseMoney}
 
 ## 庭审结果
 
 **破解的逻辑锁**: ${brokenLocks.length}/${caseData.logicalLocks.length}
-破解的锁: ${brokenLocks.join(', ') || '无'}
-
-**最终陪审团倾向**: ${finalJurySentiment} (范围 -100 到 +100)
+**最终陪审团倾向**: ${finalJurySentiment}
 **法官最终耐心**: ${judgePatience}/100
 
-## 关键时刻回顾
-${keyMessages.map(m => `[${m.speakerName}]: ${m.content}`).join('\n') || '无关键时刻'}
-
-## 完整对话记录摘要
-对话总数: ${messages.length}
-玩家发言次数: ${messages.filter(m => m.speaker === 'player').length}
-
-## 奖励条件
-${caseData.rewards.bonusConditions.map(b => 
-  `- ${b.condition}: +${b.xpBonus} XP, +$${b.moneyBonus}`
-).join('\n')}
-
-请根据以上信息，生成最终判决和复盘分析:`;
+请生成最终判决和复盘分析的 JSON。`;
 }
 
 // ============================================
@@ -401,36 +219,6 @@ export function getClueGenerationPrompt(caseData: Case): string {
 ## 案件信息
 **标题**: ${caseData.title}
 **隐藏真相**: ${caseData.hiddenTruth}
-**逻辑锁**: 
-${caseData.logicalLocks.map(l => `- ${l.surfaceClaim} -> ${l.hiddenTruth}`).join('\n')}
 
-## 线索等级要求
-
-1. **basic** (基础线索, $50) x 2个
-   - 提供一般性的背景信息
-   - 不直接指向真相，但有助于理解案件
-
-2. **advanced** (进阶线索, $150) x 2个
-   - 暗示某个逻辑锁的存在
-   - 需要玩家自己推理连接
-
-3. **premium** (高级线索, $300) x 2个
-   - 直接指向某个逻辑锁的矛盾点
-   - 大幅降低破案难度
-
-## 输出格式
-
-{
-  "clues": [
-    {
-      "id": "clue_1",
-      "level": "basic" | "advanced" | "premium",
-      "price": 50 | 150 | 300,
-      "preview": "线索预览（不透露关键信息）",
-      "content": "完整的线索内容",
-      "relatedLockId": "关联的逻辑锁ID（如果有）" | null
-    }
-  ]
-}`;
+请生成线索的 JSON。`;
 }
-

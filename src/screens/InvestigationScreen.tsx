@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Coins, Lock, Unlock, ArrowRight, FileText, AlertCircle } from 'lucide-react';
+import { Search, Coins, Lock, Unlock, ArrowRight, AlertCircle } from 'lucide-react';
 import { Button, Panel, Modal } from '@/components/ui';
 import { StatusBar, LoadingScreen, EvidencePanel } from '@/components/game';
 import { useGameStore } from '@/store/gameStore';
@@ -335,4 +335,3 @@ function ClueSection({ title, price, clues, onClueClick, playerMoney }: ClueSect
     </Panel>
   );
 }
-

@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Briefcase, RefreshCw, ArrowLeft, Star, Clock, Target } from 'lucide-react';
+import { Briefcase, RefreshCw, ArrowLeft, Star, Target } from 'lucide-react';
 import { Button, Panel } from '@/components/ui';
 import { StatusBar, LoadingScreen } from '@/components/game';
 import { useGameStore } from '@/store/gameStore';
@@ -281,4 +281,3 @@ export function OfficeScreen() {
     </div>
   );
 }
-
