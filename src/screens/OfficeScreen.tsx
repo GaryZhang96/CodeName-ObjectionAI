@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Briefcase, 
   ArrowLeft, 
-  Star, 
   Target,
   Lock,
   Unlock,

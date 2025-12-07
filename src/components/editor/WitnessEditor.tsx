@@ -26,7 +26,6 @@ export function WitnessEditor() {
     setAIGenerating,
   } = useEditorStore();
 
-  const [showAddForm, setShowAddForm] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
 
   if (!currentDraft) return null;

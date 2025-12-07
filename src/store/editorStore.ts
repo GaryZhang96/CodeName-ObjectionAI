@@ -17,7 +17,6 @@ import type {
   ValidationError,
   ValidationWarning,
   HistoryEntry,
-  EditAction,
   ExportableStory,
 } from '@/data/stories/editor-types';
 import { createEmptyDraft } from '@/data/stories/editor-types';

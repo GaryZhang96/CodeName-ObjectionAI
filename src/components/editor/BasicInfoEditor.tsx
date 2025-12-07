@@ -3,7 +3,7 @@
  */
 
 import { useEditorStore } from '@/store/editorStore';
-import { CASE_TYPE_INFO, DIFFICULTY_INFO, type DetailedCaseType, type StoryDifficulty, type CourtType, type CaseCategory } from '@/data/stories/types';
+import { CASE_TYPE_INFO, DIFFICULTY_INFO, type DetailedCaseType, type StoryDifficulty, type CourtType } from '@/data/stories/types';
 import { cn } from '@/lib/utils';
 
 const COURT_TYPES: Array<{ value: CourtType; label: string; description: string }> = [
