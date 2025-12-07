@@ -15,6 +15,7 @@ import {
   VerdictScreen,
   CollectionScreen,
   GMScreen,
+  EditorScreen,
 } from '@/screens';
 
 function App() {
@@ -46,6 +47,8 @@ function App() {
         return <CollectionScreen />;
       case 'gm':
         return <GMScreen />;
+      case 'editor':
+        return <EditorScreen />;
       default:
         return <MenuScreen />;
     }

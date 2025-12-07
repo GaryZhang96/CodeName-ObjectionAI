@@ -3,6 +3,7 @@
  */
 
 export * from './types';
+export * from './editor-types';
 export { PRESET_STORIES } from './preset-stories';
 export { PRESET_STORIES_PART2 } from './preset-stories-part2';
 

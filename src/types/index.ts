@@ -15,7 +15,8 @@ export type GamePhase =
   | 'verdict'        // 判决阶段
   | 'review'         // 复盘阶段
   | 'collection'     // 收藏界面
-  | 'gm';            // GM开发者界面
+  | 'gm'             // GM开发者界面
+  | 'editor';        // UGC故事编辑器
 
 // ============================================
 // 案件相关类型

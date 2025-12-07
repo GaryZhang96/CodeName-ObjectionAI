@@ -17,7 +17,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useCollectionStore } from '@/store/collectionStore';
 import { getStoryById, getStoryDifficultyInfo } from '@/data/stories';
 import type { CollectedStorybook } from '@/data/stories/types';
-import { cn, formatMoney } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { getRatingColor } from '@/constants/game';
 
 export function CollectionScreen() {

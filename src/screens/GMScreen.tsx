@@ -6,7 +6,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
-  Book, 
   Lock, 
   Unlock, 
   Star,

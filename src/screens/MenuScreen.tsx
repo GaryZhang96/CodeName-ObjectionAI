@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Scale, Play, Settings, Info, Volume2, VolumeX, Book, Wrench } from 'lucide-react';
+import { Scale, Play, Settings, Info, Volume2, VolumeX, Book, Wrench, PenTool } from 'lucide-react';
 import { Button, Panel, Modal } from '@/components/ui';
 import { useGameStore } from '@/store/gameStore';
 import { useCollectionStore } from '@/store/collectionStore';
@@ -141,6 +141,17 @@ export function MenuScreen() {
               我的收藏 ({collection.storybooks.length})
             </Button>
           )}
+
+          {/* 故事编辑器入口 */}
+          <Button
+            onClick={() => setPhase('editor')}
+            variant="ghost"
+            size="md"
+            className="w-64 flex items-center justify-center gap-2"
+          >
+            <PenTool className="w-4 h-4" />
+            故事编辑器 (UGC)
+          </Button>
 
           <div className="flex gap-4 justify-center pt-4">
             <Button
