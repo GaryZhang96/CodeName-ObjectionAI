@@ -111,7 +111,6 @@ export function WitnessEditor() {
             const newWitness = createEmptyWitness();
             addWitness(newWitness);
             setSelectedItem(newWitness.id);
-            setShowAddForm(false);
           }}
           className="w-full py-2 border-2 border-dashed border-amber-900/50 text-amber-400 rounded-lg hover:border-amber-500 hover:bg-amber-900/20 transition-colors"
         >
