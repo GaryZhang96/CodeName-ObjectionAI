@@ -4,16 +4,19 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Scale, Play, Settings, Info, Volume2, VolumeX } from 'lucide-react';
+import { Scale, Play, Settings, Info, Volume2, VolumeX, Book, Wrench } from 'lucide-react';
 import { Button, Panel, Modal } from '@/components/ui';
 import { useGameStore } from '@/store/gameStore';
+import { useCollectionStore } from '@/store/collectionStore';
 import { isAPIConfigured } from '@/services/ai/config';
 
 export function MenuScreen() {
   const { setPhase, player, settings, updateSettings, resetGame } = useGameStore();
+  const { collection } = useCollectionStore();
   const [showSettings, setShowSettings] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showAPIWarning, setShowAPIWarning] = useState(false);
+  const [showGMAccess, setShowGMAccess] = useState(false);
 
   const handleStartGame = () => {
     if (!isAPIConfigured()) {
@@ -126,6 +129,19 @@ export function MenuScreen() {
             </Button>
           )}
 
+          {/* 收藏入口 */}
+          {collection.storybooks.length > 0 && (
+            <Button
+              onClick={() => setPhase('collection')}
+              variant="ghost"
+              size="md"
+              className="w-64 flex items-center justify-center gap-2"
+            >
+              <Book className="w-4 h-4" />
+              我的收藏 ({collection.storybooks.length})
+            </Button>
+          )}
+
           <div className="flex gap-4 justify-center pt-4">
             <Button
               onClick={() => setShowSettings(true)}
@@ -151,6 +167,15 @@ export function MenuScreen() {
               ) : (
                 <VolumeX className="w-4 h-4" />
               )}
+            </Button>
+            {/* GM入口（开发者） */}
+            <Button
+              onClick={() => setShowGMAccess(true)}
+              variant="ghost"
+              size="sm"
+              title="开发者模式"
+            >
+              <Wrench className="w-4 h-4" />
             </Button>
           </div>
         </motion.div>
@@ -286,6 +311,44 @@ export function MenuScreen() {
           <Button onClick={() => setShowAPIWarning(false)} className="w-full">
             知道了
           </Button>
+        </div>
+      </Modal>
+
+      {/* GM入口弹窗 */}
+      <Modal
+        isOpen={showGMAccess}
+        onClose={() => setShowGMAccess(false)}
+        title="🔧 开发者模式"
+      >
+        <div className="space-y-4 text-sm">
+          <p className="text-pixel-light">
+            GM模式允许开发者查看和测试所有预设案件，包括：
+          </p>
+          <ul className="list-disc list-inside text-pixel-gray space-y-1">
+            <li>查看所有案件故事和细节</li>
+            <li>查看隐藏真相和逻辑锁</li>
+            <li>直接开始任意案件</li>
+            <li>跳过解锁条件</li>
+          </ul>
+          <div className="flex gap-2 pt-2">
+            <Button 
+              onClick={() => {
+                setShowGMAccess(false);
+                setPhase('gm');
+              }}
+              className="flex-1"
+            >
+              <Wrench className="w-4 h-4 mr-2" />
+              进入GM模式
+            </Button>
+            <Button 
+              variant="ghost"
+              onClick={() => setShowGMAccess(false)}
+              className="flex-1"
+            >
+              取消
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>

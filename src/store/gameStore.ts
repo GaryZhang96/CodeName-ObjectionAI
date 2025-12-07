@@ -24,6 +24,7 @@ import {
   getJuryExpression,
   clamp,
 } from '@/lib/utils';
+import { GAME_CONSTANTS } from '@/constants/game';
 
 // ============================================
 // 初始状态
@@ -34,9 +35,9 @@ const createInitialPlayer = (): PlayerStats => ({
   rank: 'intern',
   level: 1,
   currentXP: 0,
-  xpToNextLevel: 100,
-  money: 500,
-  reputation: 50,
+  xpToNextLevel: GAME_CONSTANTS.INITIAL_XP_TO_NEXT_LEVEL,
+  money: GAME_CONSTANTS.INITIAL_MONEY,
+  reputation: GAME_CONSTANTS.INITIAL_REPUTATION,
   stats: {
     totalCases: 0,
     casesWon: 0,
@@ -59,7 +60,7 @@ const createInitialSettings = (): GameSettings => ({
 });
 
 const createInitialJury = (): JuryMember[] => {
-  return Array.from({ length: 12 }, (_, i) => ({
+  return Array.from({ length: GAME_CONSTANTS.JURY_COUNT }, (_, i) => ({
     id: i + 1,
     sentiment: 0,
     expression: '😐' as const,
@@ -71,10 +72,10 @@ const createInitialCourtroomState = (): CourtroomState => ({
   currentWitnessId: null,
   messages: [],
   judge: {
-    name: '王法官',
-    patience: 100,
+    name: GAME_CONSTANTS.DEFAULT_JUDGE_NAME,
+    patience: GAME_CONSTANTS.INITIAL_PATIENCE,
     warnings: 0,
-    maxWarnings: 3,
+    maxWarnings: GAME_CONSTANTS.MAX_WARNINGS,
     mood: 'neutral',
   },
   jury: createInitialJury(),
@@ -338,7 +339,7 @@ export const useGameStore = create<GameState>()(
           };
         });
 
-        const avgSentiment = newJury.reduce((sum, m) => sum + m.sentiment, 0) / 12;
+        const avgSentiment = newJury.reduce((sum, m) => sum + m.sentiment, 0) / GAME_CONSTANTS.JURY_COUNT;
 
         return {
           courtroom: {
@@ -390,14 +391,13 @@ export const useGameStore = create<GameState>()(
 
       useHint: () => {
         const { courtroom, player } = get();
-        const hintCost = 100;
         
-        if (!courtroom || player.money < hintCost) return false;
+        if (!courtroom || player.money < GAME_CONSTANTS.HINT_COST) return false;
 
         set((state) => ({
           player: {
             ...state.player,
-            money: state.player.money - hintCost,
+            money: state.player.money - GAME_CONSTANTS.HINT_COST,
           },
           courtroom: {
             ...state.courtroom!,

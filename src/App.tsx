@@ -13,6 +13,8 @@ import {
   InvestigationScreen,
   CourtroomScreen,
   VerdictScreen,
+  CollectionScreen,
+  GMScreen,
 } from '@/screens';
 
 function App() {
@@ -40,6 +42,10 @@ function App() {
       case 'verdict':
       case 'review':
         return <VerdictScreen />;
+      case 'collection':
+        return <CollectionScreen />;
+      case 'gm':
+        return <GMScreen />;
       default:
         return <MenuScreen />;
     }

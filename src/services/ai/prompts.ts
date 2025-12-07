@@ -118,7 +118,20 @@ export const COURTROOM_SYSTEM_PROMPT = `你是 Lex Machina 游戏的庭审主持
 1. **永远不要说** "作为AI语言模型" 或任何出戏的话
 2. **永远保持角色** - 你就是证人/检察官/法官
 3. **响应矛盾** - 如果玩家指出了真正的逻辑矛盾，证人必须有所反应
-4. **JSON 输出** - 必须按照指定格式输出`;
+
+## 输出格式 (必须严格遵循)
+
+你必须返回以下 JSON 格式，不要添加任何其他内容：
+{
+  "response": "角色的回复内容",
+  "speaker": "witness" | "prosecutor" | "judge",
+  "emotionChange": "calm" | "confident" | "nervous" | "defensive" | "angry" | "scared" | "broken" | null,
+  "juryImpact": -10到10之间的整数,
+  "judgePatience": -20到5之间的整数,
+  "lockBroken": "逻辑锁ID" | null,
+  "witnessBroken": true | false,
+  "systemHint": "给玩家的提示" | null
+}`;
 
 export function getCourtroomPrompt(
   caseData: Case,
@@ -163,7 +176,10 @@ ${recentMessages || '（对话开始）'}
 ## 玩家的最新发言
 "${playerInput}"
 
-请输出 JSON 格式的响应。`;
+请根据玩家发言，以正确的角色身份回应。输出 JSON 格式。
+- 如果当前有证人，优先以证人身份回应
+- 如果玩家指出了逻辑矛盾，设置 lockBroken 为对应的锁ID
+- 如果证人被逼到死角，设置 witnessBroken 为 true`;
 }
 
 // ============================================

@@ -80,9 +80,27 @@ export async function callAI<T>(options: {
     }
 
     return content as T;
-  } catch (error) {
-    console.error('AI 调用失败:', error);
-    throw error;
+  } catch (error: unknown) {
+    // 提供更详细的错误信息
+    const err = error as Error & { status?: number; code?: string };
+    console.error('AI 调用失败:', {
+      message: err.message,
+      status: err.status,
+      code: err.code,
+    });
+    
+    // 根据错误类型提供友好提示
+    if (err.status === 401) {
+      throw new Error('API Key 无效或已过期，请检查配置');
+    } else if (err.status === 429) {
+      throw new Error('请求过于频繁，请稍后再试');
+    } else if (err.status === 400) {
+      throw new Error('请求格式错误，可能是模型不支持当前请求');
+    } else if (err.message?.includes('model')) {
+      throw new Error(`模型不可用: ${model}，请检查模型名称`);
+    }
+    
+    throw new Error(`AI 服务错误: ${err.message || '未知错误'}`);
   }
 }
 

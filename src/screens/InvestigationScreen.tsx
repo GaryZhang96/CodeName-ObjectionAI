@@ -10,6 +10,7 @@ import { StatusBar, LoadingScreen, EvidencePanel } from '@/components/game';
 import { useGameStore } from '@/store/gameStore';
 import { generateCluesForCase } from '@/services/ai/caseGenerator';
 import { formatMoney, cn } from '@/lib/utils';
+import { getClueLevelName, getClueLevelShortName } from '@/constants/game';
 import type { PurchasableClue } from '@/types';
 
 export function InvestigationScreen() {
@@ -143,9 +144,7 @@ export function InvestigationScreen() {
                       onClick={() => setSelectedClue(clue)}
                     >
                       <p className="text-pixel-green text-xs mb-1">
-                        {clue.level === 'basic' && '基础线索'}
-                        {clue.level === 'advanced' && '进阶线索'}
-                        {clue.level === 'premium' && '高级线索'}
+                        {getClueLevelName(clue.level)}
                       </p>
                       <p className="text-pixel-light">{clue.content}</p>
                     </div>
@@ -227,9 +226,7 @@ export function InvestigationScreen() {
                 selectedClue.level === 'advanced' && 'text-yellow-400 border-yellow-400',
                 selectedClue.level === 'premium' && 'text-purple-400 border-purple-400',
               )}>
-                {selectedClue.level === 'basic' && '基础'}
-                {selectedClue.level === 'advanced' && '进阶'}
-                {selectedClue.level === 'premium' && '高级'}
+                {getClueLevelShortName(selectedClue.level)}
               </span>
               <span className="font-pixel-title text-yellow-400">
                 {formatMoney(selectedClue.price)}

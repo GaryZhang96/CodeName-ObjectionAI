@@ -11,6 +11,7 @@ import {
   getClueGenerationPrompt,
 } from './prompts';
 import { AI_CONFIG } from './config';
+import { getAvailableDifficulties } from '@/lib/utils';
 
 /**
  * 生成新案件
@@ -41,7 +42,7 @@ export async function generateCaseOptions(
   playerLevel: number,
   count: number = 3
 ): Promise<Case[]> {
-  const availableDifficulties = getAvailableDifficultiesForLevel(playerLevel);
+  const availableDifficulties = getAvailableDifficulties(playerLevel);
   const cases: Case[] = [];
   const usedTitles: string[] = [];
 
@@ -114,17 +115,6 @@ function validateCase(caseData: Case): void {
   if (errors.length > 0) {
     console.warn('案件验证警告:', errors);
   }
-}
-
-/**
- * 根据等级获取可用难度
- */
-function getAvailableDifficultiesForLevel(level: number): string[] {
-  const difficulties = ['easy'];
-  if (level >= 3) difficulties.push('medium');
-  if (level >= 6) difficulties.push('hard');
-  if (level >= 10) difficulties.push('legendary');
-  return difficulties;
 }
 
 /**

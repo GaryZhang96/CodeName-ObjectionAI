@@ -2,7 +2,7 @@
  * 像素风模态框组件
  */
 
-import { type ReactNode } from 'react';
+import { type ReactNode, useId, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,35 @@ export function Modal({
   className,
   showCloseButton = true,
 }: ModalProps) {
+  const titleId = useId();
+  const contentId = useId();
+
+  // 处理 ESC 键关闭
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
+  // 打开时禁止背景滚动
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -34,6 +63,10 @@ export function Modal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={title ? titleId : undefined}
+          aria-describedby={contentId}
         >
           {/* Backdrop */}
           <motion.div
@@ -42,6 +75,7 @@ export function Modal({
             exit={{ opacity: 0 }}
             className="absolute inset-0 bg-black/80"
             onClick={onClose}
+            aria-hidden="true"
           />
           
           {/* Modal Content */}
@@ -57,7 +91,10 @@ export function Modal({
               {(title || showCloseButton) && (
                 <div className="flex items-center justify-between mb-4 pb-2 border-b-2 border-pixel-gold/30">
                   {title && (
-                    <h2 className="font-pixel-title text-pixel-gold text-lg">
+                    <h2 
+                      id={titleId}
+                      className="font-pixel-title text-pixel-gold text-lg"
+                    >
                       {title}
                     </h2>
                   )}
@@ -67,6 +104,7 @@ export function Modal({
                       size="sm"
                       onClick={onClose}
                       className="!p-1 !border-2"
+                      aria-label="关闭弹窗"
                     >
                       <X size={16} />
                     </Button>
@@ -75,7 +113,7 @@ export function Modal({
               )}
               
               {/* Body */}
-              <div className="font-pixel-body text-pixel-light">
+              <div id={contentId} className="font-pixel-body text-pixel-light">
                 {children}
               </div>
             </Panel>

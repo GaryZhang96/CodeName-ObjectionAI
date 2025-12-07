@@ -7,4 +7,6 @@ export * from './OfficeScreen';
 export * from './InvestigationScreen';
 export * from './CourtroomScreen';
 export * from './VerdictScreen';
+export * from './GMScreen';
+export * from './CollectionScreen';
 

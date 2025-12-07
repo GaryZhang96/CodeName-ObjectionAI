@@ -20,6 +20,7 @@ import {
 import { Button, Panel } from '@/components/ui';
 import { useGameStore } from '@/store/gameStore';
 import { formatMoney, cn } from '@/lib/utils';
+import { getRatingColor } from '@/constants/game';
 
 export function VerdictScreen() {
   const {
@@ -102,18 +103,6 @@ export function VerdictScreen() {
 
   const verdictDisplay = getVerdictDisplay();
   const VerdictIcon = verdictDisplay.icon;
-
-  const getRatingColor = (rating: string) => {
-    switch (rating) {
-      case 'S': return 'text-yellow-400';
-      case 'A': return 'text-pixel-green';
-      case 'B': return 'text-blue-400';
-      case 'C': return 'text-pixel-light';
-      case 'D': return 'text-orange-400';
-      case 'F': return 'text-pixel-red';
-      default: return 'text-pixel-light';
-    }
-  };
 
   return (
     <div className="min-h-screen bg-court-primary py-8 px-4 overflow-y-auto">

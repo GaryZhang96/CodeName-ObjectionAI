@@ -2,7 +2,7 @@
  * 庭审阶段界面 - 核心玩法
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   HelpCircle, 
@@ -23,6 +23,7 @@ import {
   getPartnerHint,
 } from '@/services/ai/courtSimulator';
 import { cn } from '@/lib/utils';
+import { getEmotionDisplay, getProsecutorStyleName, GAME_CONSTANTS } from '@/constants/game';
 import type { CourtroomMessage, Evidence, Witness } from '@/types';
 
 export function CourtroomScreen() {
@@ -52,38 +53,37 @@ export function CourtroomScreen() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // 清理定时器
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   // 自动滚动到最新消息
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [courtroom?.messages]);
 
-  // 开庭
-  useEffect(() => {
-    if (courtroom && courtroom.messages.length === 0) {
-      startTrial();
+  // 使用 useMemo 缓存计算结果
+  const { currentWitness, unbrokenLocks, brokenLocks } = useMemo(() => {
+    if (!currentCase || !courtroom) {
+      return { currentWitness: undefined, unbrokenLocks: [], brokenLocks: [] };
     }
-  }, [courtroom]);
+    return {
+      currentWitness: currentCase.witnesses.find(w => w.id === courtroom.currentWitnessId),
+      unbrokenLocks: currentCase.logicalLocks.filter(l => !l.isBroken),
+      brokenLocks: currentCase.logicalLocks.filter(l => l.isBroken),
+    };
+  }, [currentCase, courtroom?.currentWitnessId]);
 
-  if (!currentCase || !courtroom) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-court-primary">
-        <Panel>
-          <p className="text-pixel-light mb-4">案件数据丢失</p>
-          <Button onClick={() => setPhase('office')}>返回事务所</Button>
-        </Panel>
-      </div>
-    );
-  }
-
-  const currentWitness = currentCase.witnesses.find(
-    w => w.id === courtroom.currentWitnessId
-  );
-  const unbrokenLocks = currentCase.logicalLocks.filter(l => !l.isBroken);
-  const brokenLocks = currentCase.logicalLocks.filter(l => l.isBroken);
-
-  // 开庭流程
-  const startTrial = async () => {
+  // 开庭流程 - 使用 useCallback 确保稳定引用
+  const startTrial = useCallback(async () => {
+    if (!currentCase || !courtroom) return;
     // 法官开庭
     const judgeOpening = await generateJudgeStatement('opening');
     addMessage(createCourtroomMessage(
@@ -94,7 +94,8 @@ export function CourtroomScreen() {
     ));
 
     // 检察官开庭陈述
-    setTimeout(async () => {
+    timerRef.current = setTimeout(async () => {
+      if (!currentCase) return;
       const { response, juryImpact } = await generateProsecutorStatement(
         currentCase,
         courtroom.messages,
@@ -115,7 +116,25 @@ export function CourtroomScreen() {
         '现在轮到辩护律师（你）进行询问。你可以选择传唤证人、提出问题、或出示证据。',
       ));
     }, 2000);
-  };
+  }, [currentCase, courtroom, addMessage, updateJurySentiment]);
+
+  // 开庭
+  useEffect(() => {
+    if (courtroom && courtroom.messages.length === 0) {
+      startTrial();
+    }
+  }, [courtroom?.messages.length, startTrial]);
+
+  if (!currentCase || !courtroom) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-court-primary">
+        <Panel>
+          <p className="text-pixel-light mb-4">案件数据丢失</p>
+          <Button onClick={() => setPhase('office')}>返回事务所</Button>
+        </Panel>
+      </div>
+    );
+  }
 
   // 处理玩家发言
   const handleSubmit = async () => {
@@ -213,10 +232,11 @@ export function CourtroomScreen() {
 
     } catch (error) {
       console.error('处理发言失败:', error);
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
       addMessage(createCourtroomMessage(
         'system',
         '系统',
-        '处理发言时出错，请重试。',
+        `处理发言时出错: ${errorMessage}`,
       ));
     } finally {
       setIsProcessing(false);
@@ -311,26 +331,12 @@ export function CourtroomScreen() {
         courtroom.judge.patience
       );
       
-      setTimeout(() => {
+      timerRef.current = setTimeout(() => {
         setVerdict(verdict);
       }, 2000);
     } catch (error) {
       console.error('生成判决失败:', error);
     }
-  };
-
-  // 获取情绪显示
-  const getEmotionDisplay = (emotion: string) => {
-    const emotions: Record<string, { text: string; color: string }> = {
-      calm: { text: '平静', color: 'text-pixel-blue' },
-      confident: { text: '自信', color: 'text-pixel-green' },
-      nervous: { text: '紧张', color: 'text-yellow-400' },
-      defensive: { text: '防御', color: 'text-orange-400' },
-      angry: { text: '愤怒', color: 'text-pixel-red' },
-      scared: { text: '恐惧', color: 'text-purple-400' },
-      broken: { text: '崩溃', color: 'text-pixel-red animate-pulse' },
-    };
-    return emotions[emotion] || emotions.calm;
   };
 
   return (
@@ -424,7 +430,7 @@ export function CourtroomScreen() {
                 disabled={isProcessing}
               >
                 <HelpCircle className="w-4 h-4 mr-1" />
-                求助 ($100)
+                求助 (${GAME_CONSTANTS.HINT_COST})
               </Button>
             </div>
           </div>
@@ -527,10 +533,7 @@ export function CourtroomScreen() {
                 {currentCase.prosecutor.name}
               </p>
               <p className="text-xs text-pixel-gray mt-1">
-                {currentCase.prosecutor.style === 'aggressive' && '咄咄逼人'}
-                {currentCase.prosecutor.style === 'methodical' && '条理分明'}
-                {currentCase.prosecutor.style === 'theatrical' && '戏剧夸张'}
-                {currentCase.prosecutor.style === 'cunning' && '老谋深算'}
+                {getProsecutorStyleName(currentCase.prosecutor.style)}
               </p>
             </Panel>
 
@@ -625,8 +628,8 @@ export function CourtroomScreen() {
   );
 }
 
-// 消息气泡组件
-function MessageBubble({ message }: { message: CourtroomMessage }) {
+// 消息气泡组件 - 使用 memo 优化渲染
+const MessageBubble = memo(function MessageBubble({ message }: { message: CourtroomMessage }) {
   const getSpeakerStyle = () => {
     switch (message.speaker) {
       case 'player':
@@ -687,4 +690,4 @@ function MessageBubble({ message }: { message: CourtroomMessage }) {
       )}
     </motion.div>
   );
-}
+});

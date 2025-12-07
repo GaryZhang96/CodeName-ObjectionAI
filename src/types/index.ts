@@ -13,7 +13,9 @@ export type GamePhase =
   | 'investigation'  // 调查阶段
   | 'courtroom'      // 庭审阶段
   | 'verdict'        // 判决阶段
-  | 'review';        // 复盘阶段
+  | 'review'         // 复盘阶段
+  | 'collection'     // 收藏界面
+  | 'gm';            // GM开发者界面
 
 // ============================================
 // 案件相关类型

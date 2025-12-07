@@ -3,4 +3,5 @@
  */
 
 export * from './gameStore';
+export * from './collectionStore';
 

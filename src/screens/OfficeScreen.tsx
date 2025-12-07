@@ -9,8 +9,8 @@ import { Button, Panel } from '@/components/ui';
 import { StatusBar, LoadingScreen } from '@/components/game';
 import { useGameStore } from '@/store/gameStore';
 import { generateCaseOptions } from '@/services/ai/caseGenerator';
-import { getDifficultyInfo, formatMoney } from '@/lib/utils';
-import { cn } from '@/lib/utils';
+import { getDifficultyInfo, formatMoney, cn } from '@/lib/utils';
+import { getCaseTypeName, getProsecutorStyleName } from '@/constants/game';
 import type { Case } from '@/types';
 
 export function OfficeScreen() {
@@ -143,12 +143,7 @@ export function OfficeScreen() {
 
                   {/* 案件类型 */}
                   <p className="font-pixel-body text-xs text-pixel-gray mb-3">
-                    {caseItem.type === 'theft' && '盗窃案'}
-                    {caseItem.type === 'assault' && '伤害案'}
-                    {caseItem.type === 'fraud' && '欺诈案'}
-                    {caseItem.type === 'murder' && '谋杀案'}
-                    {caseItem.type === 'corporate' && '公司犯罪'}
-                    {caseItem.type === 'cyber' && '网络犯罪'}
+                    {getCaseTypeName(caseItem.type)}
                   </p>
 
                   {/* 案件摘要 */}
@@ -255,10 +250,7 @@ export function OfficeScreen() {
                       {selectedCase.prosecutor.name}
                     </p>
                     <p className="text-xs text-pixel-gray">
-                      风格: {selectedCase.prosecutor.style === 'aggressive' && '咄咄逼人'}
-                      {selectedCase.prosecutor.style === 'methodical' && '条理分明'}
-                      {selectedCase.prosecutor.style === 'theatrical' && '戏剧夸张'}
-                      {selectedCase.prosecutor.style === 'cunning' && '老谋深算'}
+                      风格: {getProsecutorStyleName(selectedCase.prosecutor.style)}
                     </p>
                   </div>
                 </div>

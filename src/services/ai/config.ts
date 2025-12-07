@@ -8,10 +8,11 @@ export const AI_CONFIG = {
   baseURL: 'https://openrouter.ai/api/v1',
   
   // 默认模型（使用 Gemini Flash 以获得快速响应）
-  defaultModel: import.meta.env.VITE_AI_MODEL || 'google/gemini-2.0-flash-001',
+  // 可选模型: google/gemini-flash-1.5, google/gemini-pro, anthropic/claude-3-haiku, openai/gpt-4o-mini
+  defaultModel: import.meta.env.VITE_AI_MODEL || 'google/gemini-flash-1.5',
   
   // 用于复杂推理的模型
-  reasoningModel: 'google/gemini-2.0-flash-001',
+  reasoningModel: import.meta.env.VITE_AI_REASONING_MODEL || 'google/gemini-flash-1.5',
   
   // 温度设置
   temperature: {

@@ -17,7 +17,7 @@ import {
   getVerdictPrompt,
 } from './prompts';
 import { AI_CONFIG } from './config';
-import { generateId } from '@/lib/utils';
+import { generateId, clamp } from '@/lib/utils';
 
 /**
  * 处理玩家在庭审中的发言
@@ -49,8 +49,8 @@ export async function processPlayerStatement(
     response: result.response || '（无回应）',
     speaker: result.speaker || 'witness',
     emotionChange: result.emotionChange || undefined,
-    juryImpact: clampValue(result.juryImpact || 0, -10, 10),
-    judgePatience: clampValue(result.judgePatience || 0, -20, 5),
+    juryImpact: clamp(result.juryImpact || 0, -10, 10),
+    judgePatience: clamp(result.judgePatience || 0, -20, 5),
     lockBroken: result.lockBroken || undefined,
     witnessBroken: result.witnessBroken || false,
     systemHint: result.systemHint || undefined,
@@ -82,7 +82,7 @@ export async function generateProsecutorStatement(
 
   return {
     response: result.response || '（检察官沉默）',
-    juryImpact: clampValue(result.juryImpact || 0, -5, 5),
+    juryImpact: clamp(result.juryImpact || 0, -5, 5),
   };
 }
 
@@ -203,11 +203,4 @@ export async function getPartnerHint(
   });
 
   return result.hint || targetLock.hint;
-}
-
-/**
- * 辅助函数：限制数值范围
- */
-function clampValue(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
 }
