@@ -296,16 +296,160 @@ body {
 }
 
 /* ============================================
-   响应式调整
+   响应式调整 - 移动端适配
    ============================================ */
 
+/* 移动端基础调整 */
 @media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+    cursor: auto; /* 移动端使用默认光标 */
+    -webkit-tap-highlight-color: transparent; /* 移除触摸高亮 */
+    touch-action: manipulation; /* 禁用双击缩放 */
+  }
+
   .pixel-btn {
-    @apply px-4 py-2 text-xs;
+    @apply px-4 py-3 text-xs min-h-[44px]; /* 确保触摸目标足够大 */
   }
 
   .pixel-title {
     @apply text-sm;
+  }
+
+  .pixel-panel {
+    @apply p-3 border-2;
+  }
+
+  .pixel-input {
+    @apply px-3 py-2 text-base border-2; /* 16px+ 防止iOS缩放 */
+    font-size: 16px !important; /* 防止Safari自动缩放 */
+  }
+
+  /* 陪审团格子缩小 */
+  .jury-cell {
+    @apply w-8 h-8 text-lg border;
+  }
+
+  /* 证据卡片移动端 */
+  .evidence-card {
+    @apply border-2;
+  }
+
+  /* 隐藏PC端滚动条样式 */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  /* 扫描线效果在移动端减弱 */
+  .scanline-overlay {
+    opacity: 0.3;
+  }
+}
+
+/* 小屏手机额外优化 */
+@media (max-width: 480px) {
+  html {
+    font-size: 13px;
+  }
+
+  .pixel-btn {
+    @apply px-3 py-2 text-[10px];
+  }
+
+  .jury-cell {
+    @apply w-6 h-6 text-sm;
+  }
+}
+
+/* 横屏手机适配 */
+@media (max-height: 500px) and (orientation: landscape) {
+  body {
+    overflow-y: auto;
+  }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  /* 禁用hover效果，使用active */
+  .pixel-btn {
+    @apply hover:translate-x-0 hover:translate-y-0 hover:shadow-pixel;
+  }
+
+  .pixel-btn:active {
+    @apply translate-x-[2px] translate-y-[2px] shadow-none;
+  }
+
+  .evidence-card {
+    @apply hover:scale-100;
+  }
+
+  .evidence-card:active {
+    @apply scale-95;
+  }
+
+  /* 增大可点击区域 */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* 更友好的滚动 */
+  .custom-scrollbar {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+}
+
+/* 安全区域适配 (iPhone X+) */
+@supports (padding: max(0px)) {
+  .safe-area-top {
+    padding-top: max(env(safe-area-inset-top), 16px);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 16px);
+  }
+
+  .safe-area-inset {
+    padding-left: max(env(safe-area-inset-left), 16px);
+    padding-right: max(env(safe-area-inset-right), 16px);
+  }
+}
+
+/* 移动端专用工具类 */
+@layer utilities {
+  .mobile-fullscreen {
+    @apply min-h-screen min-h-[100dvh]; /* 动态视口高度 */
+  }
+
+  .mobile-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+
+  .touch-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* 隐藏移动端元素 */
+  .hide-mobile {
+    @apply hidden md:block;
+  }
+
+  /* 仅移动端显示 */
+  .show-mobile {
+    @apply block md:hidden;
   }
 }
 

@@ -62,7 +62,7 @@ export function Modal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby={title ? titleId : undefined}
@@ -78,22 +78,26 @@ export function Modal({
             aria-hidden="true"
           />
           
-          {/* Modal Content */}
+          {/* Modal Content - 移动端从底部滑入 */}
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            className={cn('relative z-10 w-full max-w-lg', className)}
+            initial={{ y: '100%', opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: '100%', opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className={cn(
+              'relative z-10 w-full max-w-lg',
+              'sm:rounded-lg',
+              className
+            )}
           >
-            <Panel variant="default" className="relative">
+            <Panel variant="default" className="relative rounded-t-2xl sm:rounded-lg max-h-[85vh] sm:max-h-[80vh] flex flex-col">
               {/* Header */}
               {(title || showCloseButton) && (
-                <div className="flex items-center justify-between mb-4 pb-2 border-b-2 border-pixel-gold/30">
+                <div className="flex items-center justify-between mb-3 sm:mb-4 pb-2 border-b-2 border-pixel-gold/30 shrink-0">
                   {title && (
                     <h2 
                       id={titleId}
-                      className="font-pixel-title text-pixel-gold text-lg"
+                      className="font-pixel-title text-pixel-gold text-base sm:text-lg"
                     >
                       {title}
                     </h2>
@@ -103,17 +107,20 @@ export function Modal({
                       variant="ghost"
                       size="sm"
                       onClick={onClose}
-                      className="!p-1 !border-2"
+                      className="!p-2 !border-2 !min-w-[40px] !min-h-[40px]"
                       aria-label="关闭弹窗"
                     >
-                      <X size={16} />
+                      <X size={18} />
                     </Button>
                   )}
                 </div>
               )}
               
               {/* Body */}
-              <div id={contentId} className="font-pixel-body text-pixel-light">
+              <div 
+                id={contentId} 
+                className="font-pixel-body text-pixel-light overflow-y-auto touch-scroll flex-1"
+              >
                 {children}
               </div>
             </Panel>

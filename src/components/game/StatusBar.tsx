@@ -15,26 +15,26 @@ export function StatusBar() {
     <motion.div
       initial={{ y: -50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="fixed top-0 left-0 right-0 z-40 bg-court-primary/95 border-b-4 border-pixel-gold"
+      className="fixed top-0 left-0 right-0 z-40 bg-court-primary/95 border-b-2 sm:border-b-4 border-pixel-gold safe-area-top"
     >
-      <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between">
         {/* 左侧：玩家信息 */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-2 sm:gap-6">
           {/* 等级 */}
-          <div className="flex items-center gap-2">
-            <Award className="w-5 h-5 text-pixel-gold" />
-            <span className="font-pixel-title text-xs text-pixel-gold">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Award className="w-4 h-4 sm:w-5 sm:h-5 text-pixel-gold" />
+            <span className="font-pixel-title text-[10px] sm:text-xs text-pixel-gold">
               Lv.{player.level}
             </span>
-            <span className="font-pixel-body text-sm text-pixel-light">
+            <span className="font-pixel-body text-xs sm:text-sm text-pixel-light hidden sm:inline">
               {getRankName(player.rank)}
             </span>
           </div>
 
-          {/* 经验条 */}
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-pixel-green" />
-            <div className="w-24 h-3 bg-pixel-dark border-2 border-pixel-gray">
+          {/* 经验条 - 移动端简化 */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-pixel-green hidden sm:block" />
+            <div className="w-12 sm:w-24 h-2 sm:h-3 bg-pixel-dark border sm:border-2 border-pixel-gray">
               <motion.div
                 className="h-full bg-pixel-green"
                 initial={{ width: 0 }}
@@ -44,34 +44,34 @@ export function StatusBar() {
                 transition={{ duration: 0.5 }}
               />
             </div>
-            <span className="font-pixel-body text-xs text-pixel-gray">
+            <span className="font-pixel-body text-[10px] sm:text-xs text-pixel-gray hidden sm:inline">
               {player.currentXP}/{player.xpToNextLevel}
             </span>
           </div>
         </div>
 
         {/* 中间：游戏标题 */}
-        <h1 className="font-pixel-title text-sm text-pixel-gold glow-text hidden md:block">
+        <h1 className="font-pixel-title text-xs sm:text-sm text-pixel-gold glow-text hidden md:block">
           LEX MACHINA
         </h1>
 
         {/* 右侧：资源 */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-2 sm:gap-6">
           {/* 金钱 */}
-          <div className="flex items-center gap-2">
-            <Coins className="w-5 h-5 text-yellow-400" />
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Coins className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
             <span className={cn(
-              "font-pixel-title text-sm",
+              "font-pixel-title text-xs sm:text-sm",
               player.money < 100 ? "text-pixel-red" : "text-yellow-400"
             )}>
               {formatMoney(player.money)}
             </span>
           </div>
 
-          {/* 声望 */}
-          <div className="flex items-center gap-2">
-            <Star className="w-5 h-5 text-purple-400" />
-            <span className="font-pixel-body text-sm text-purple-400">
+          {/* 声望 - 移动端隐藏标签 */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Star className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
+            <span className="font-pixel-body text-xs sm:text-sm text-purple-400">
               {player.reputation}
             </span>
           </div>

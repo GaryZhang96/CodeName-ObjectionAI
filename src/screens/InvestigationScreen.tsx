@@ -92,38 +92,38 @@ export function InvestigationScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-court-primary">
+    <div className="min-h-screen min-h-[100dvh] bg-court-primary">
       <StatusBar />
       
-      <div className="pt-16 pb-8 px-4 max-w-6xl mx-auto">
+      <div className="pt-14 sm:pt-16 pb-6 sm:pb-8 px-3 sm:px-4 max-w-6xl mx-auto safe-area-inset">
         {/* 标题 */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
+          className="text-center mb-4 sm:mb-8"
         >
-          <h1 className="font-pixel-title text-2xl text-pixel-gold mb-2">
-            <Search className="inline w-8 h-8 mr-2" />
+          <h1 className="font-pixel-title text-lg sm:text-2xl text-pixel-gold mb-1 sm:mb-2">
+            <Search className="inline w-6 h-6 sm:w-8 sm:h-8 mr-1 sm:mr-2" />
             调查阶段
           </h1>
-          <p className="font-pixel-body text-pixel-gray">
-            购买线索来了解案件的更多信息
+          <p className="font-pixel-body text-xs sm:text-sm text-pixel-gray">
+            购买线索了解案件更多信息
           </p>
         </motion.div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* 左侧：案件信息 */}
-          <div className="lg:col-span-1 space-y-4">
+          <div className="lg:col-span-1 space-y-3 sm:space-y-4">
             <Panel variant="default">
-              <h2 className="font-pixel-title text-sm text-pixel-gold mb-3">
+              <h2 className="font-pixel-title text-xs sm:text-sm text-pixel-gold mb-2 sm:mb-3">
                 {currentCase.title}
               </h2>
-              <p className="font-pixel-body text-sm text-pixel-light mb-4">
+              <p className="font-pixel-body text-xs sm:text-sm text-pixel-light mb-3 sm:mb-4 line-clamp-3 sm:line-clamp-none">
                 {currentCase.summary}
               </p>
-              <div className="border-t border-pixel-gray/30 pt-3">
-                <p className="text-xs text-pixel-gray mb-1">被告</p>
-                <p className="text-sm text-pixel-light">{currentCase.defendant.name}</p>
+              <div className="border-t border-pixel-gray/30 pt-2 sm:pt-3">
+                <p className="text-[10px] sm:text-xs text-pixel-gray mb-0.5 sm:mb-1">被告</p>
+                <p className="text-xs sm:text-sm text-pixel-light">{currentCase.defendant.name}</p>
               </div>
             </Panel>
 
@@ -133,20 +133,20 @@ export function InvestigationScreen() {
             {/* 已购买线索 */}
             {investigation && investigation.purchasedClues.length > 0 && (
               <Panel variant="dark">
-                <h3 className="font-pixel-title text-xs text-pixel-gold mb-3">
-                  已购买的线索 ({investigation.purchasedClues.length})
+                <h3 className="font-pixel-title text-[10px] sm:text-xs text-pixel-gold mb-2 sm:mb-3">
+                  已购买线索 ({investigation.purchasedClues.length})
                 </h3>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
+                <div className="space-y-1.5 sm:space-y-2 max-h-32 sm:max-h-40 overflow-y-auto touch-scroll">
                   {investigation.purchasedClues.map(clue => (
                     <div
                       key={clue.id}
-                      className="p-2 bg-pixel-black border border-pixel-green text-sm cursor-pointer hover:bg-pixel-dark"
+                      className="p-1.5 sm:p-2 bg-pixel-black border border-pixel-green text-xs sm:text-sm cursor-pointer active:bg-pixel-dark"
                       onClick={() => setSelectedClue(clue)}
                     >
-                      <p className="text-pixel-green text-xs mb-1">
+                      <p className="text-pixel-green text-[10px] sm:text-xs mb-0.5 sm:mb-1">
                         {getClueLevelName(clue.level)}
                       </p>
-                      <p className="text-pixel-light">{clue.content}</p>
+                      <p className="text-pixel-light line-clamp-2">{clue.content}</p>
                     </div>
                   ))}
                 </div>
@@ -155,7 +155,7 @@ export function InvestigationScreen() {
           </div>
 
           {/* 中间和右侧：可购买线索 */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* 基础线索 */}
             <ClueSection
               title="基础线索"
@@ -183,28 +183,28 @@ export function InvestigationScreen() {
               playerMoney={player.money}
             />
 
-            {/* 提示信息 */}
-            <Panel variant="dark" className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <p className="text-yellow-400 font-pixel-title text-xs mb-1">提示</p>
+            {/* 提示信息 - 移动端简化 */}
+            <Panel variant="dark" className="flex items-start gap-2 sm:gap-3">
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <div className="text-xs sm:text-sm">
+                <p className="text-yellow-400 font-pixel-title text-[10px] sm:text-xs mb-0.5 sm:mb-1">提示</p>
                 <p className="text-pixel-light">
-                  线索可以帮助你在庭审中找到证人证词的漏洞。
-                  高级线索通常直接指向关键矛盾点。
-                  但即使不购买任何线索，你也可以通过仔细询问来发现真相。
+                  <span className="hidden sm:inline">线索可以帮助你在庭审中找到证人证词的漏洞。高级线索通常直接指向关键矛盾点。</span>
+                  <span className="sm:hidden">线索帮助发现证词漏洞。</span>
+                  不购买线索也可通过仔细询问发现真相。
                 </p>
               </div>
             </Panel>
 
             {/* 进入庭审按钮 */}
-            <div className="flex justify-end">
+            <div className="flex justify-center sm:justify-end">
               <Button
                 onClick={handleProceedToCourtroom}
                 size="lg"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 w-full sm:w-auto"
               >
                 进入庭审
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             </div>
           </div>
@@ -286,43 +286,43 @@ function ClueSection({ title, price, clues, onClueClick, playerMoney }: ClueSect
 
   return (
     <Panel variant="dark">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-pixel-title text-sm text-pixel-gold">{title}</h3>
-        <span className="font-pixel-body text-yellow-400 text-sm">
-          <Coins className="inline w-4 h-4 mr-1" />
+      <div className="flex items-center justify-between mb-2 sm:mb-4">
+        <h3 className="font-pixel-title text-xs sm:text-sm text-pixel-gold">{title}</h3>
+        <span className="font-pixel-body text-yellow-400 text-xs sm:text-sm">
+          <Coins className="inline w-3 h-3 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" />
           {formatMoney(price)}/条
         </span>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
         {clues.map((clue, index) => (
           <motion.button
             key={clue.id}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
+            transition={{ delay: index * 0.05 }}
             onClick={() => onClueClick(clue)}
             className={cn(
-              'p-3 text-left border-2 transition-all',
+              'p-2 sm:p-3 text-left border sm:border-2 transition-all active:scale-[0.98] min-h-[44px]',
               clue.purchased
                 ? 'bg-pixel-dark border-pixel-green'
                 : playerMoney >= price
-                  ? 'bg-pixel-dark border-pixel-gray hover:border-pixel-gold'
+                  ? 'bg-pixel-dark border-pixel-gray active:border-pixel-gold'
                   : 'bg-pixel-dark border-pixel-gray opacity-50',
             )}
           >
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-1.5 sm:gap-2">
               {clue.purchased ? (
-                <Unlock className="w-4 h-4 text-pixel-green flex-shrink-0 mt-0.5" />
+                <Unlock className="w-3 h-3 sm:w-4 sm:h-4 text-pixel-green flex-shrink-0 mt-0.5" />
               ) : (
-                <Lock className="w-4 h-4 text-pixel-gray flex-shrink-0 mt-0.5" />
+                <Lock className="w-3 h-3 sm:w-4 sm:h-4 text-pixel-gray flex-shrink-0 mt-0.5" />
               )}
               <div>
-                <p className="font-pixel-body text-sm text-pixel-light">
+                <p className="font-pixel-body text-xs sm:text-sm text-pixel-light line-clamp-2 sm:line-clamp-none">
                   {clue.purchased ? clue.content : clue.preview}
                 </p>
                 {!clue.purchased && playerMoney < price && (
-                  <p className="text-xs text-pixel-red mt-1">余额不足</p>
+                  <p className="text-[10px] sm:text-xs text-pixel-red mt-0.5 sm:mt-1">余额不足</p>
                 )}
               </div>
             </div>

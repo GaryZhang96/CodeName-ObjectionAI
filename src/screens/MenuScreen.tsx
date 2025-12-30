@@ -33,7 +33,7 @@ export function MenuScreen() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen min-h-[100dvh] flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden safe-area-inset">
       {/* 背景效果 */}
       <div className="absolute inset-0 bg-gradient-to-b from-court-primary via-court-secondary to-court-primary" />
       
@@ -57,9 +57,9 @@ export function MenuScreen() {
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="relative z-10 text-center"
+        className="relative z-10 text-center w-full max-w-md px-4"
       >
-        {/* Logo */}
+        {/* Logo - 移动端缩小 */}
         <motion.div
           animate={{ 
             rotate: [0, 5, -5, 0],
@@ -69,9 +69,9 @@ export function MenuScreen() {
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         >
-          <Scale className="w-32 h-32 mx-auto text-pixel-gold drop-shadow-[0_0_30px_rgba(255,215,0,0.5)]" />
+          <Scale className="w-20 h-20 sm:w-32 sm:h-32 mx-auto text-pixel-gold drop-shadow-[0_0_30px_rgba(255,215,0,0.5)]" />
         </motion.div>
 
         {/* 标题 */}
@@ -79,7 +79,7 @@ export function MenuScreen() {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3, duration: 0.5 }}
-          className="font-pixel-title text-4xl md:text-5xl text-pixel-gold mb-4 glow-text"
+          className="font-pixel-title text-2xl sm:text-4xl md:text-5xl text-pixel-gold mb-2 sm:mb-4 glow-text"
         >
           LEX MACHINA
         </motion.h1>
@@ -88,7 +88,7 @@ export function MenuScreen() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="font-pixel-title text-lg text-amber-glow mb-2"
+          className="font-pixel-title text-sm sm:text-lg text-amber-glow mb-1 sm:mb-2"
         >
           律 政 先 锋
         </motion.p>
@@ -97,7 +97,7 @@ export function MenuScreen() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
-          className="font-pixel-body text-pixel-gray mb-12"
+          className="font-pixel-body text-xs sm:text-sm text-pixel-gray mb-8 sm:mb-12"
         >
           AI驱动的法庭模拟游戏
         </motion.p>
@@ -107,14 +107,14 @@ export function MenuScreen() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9 }}
-          className="space-y-4"
+          className="space-y-3 sm:space-y-4"
         >
           <Button
             onClick={handleStartGame}
             size="lg"
-            className="w-64 flex items-center justify-center gap-3"
+            className="w-full sm:w-64 flex items-center justify-center gap-2 sm:gap-3"
           >
-            <Play className="w-5 h-5" />
+            <Play className="w-4 h-4 sm:w-5 sm:h-5" />
             {player.stats.totalCases > 0 ? '继续游戏' : '开始游戏'}
           </Button>
 
@@ -123,7 +123,7 @@ export function MenuScreen() {
               onClick={handleNewGame}
               variant="ghost"
               size="md"
-              className="w-64"
+              className="w-full sm:w-64"
             >
               新游戏
             </Button>
@@ -135,58 +135,62 @@ export function MenuScreen() {
               onClick={() => setPhase('collection')}
               variant="ghost"
               size="md"
-              className="w-64 flex items-center justify-center gap-2"
+              className="w-full sm:w-64 flex items-center justify-center gap-2"
             >
               <Book className="w-4 h-4" />
               我的收藏 ({collection.storybooks.length})
             </Button>
           )}
 
-          {/* 故事编辑器入口 */}
+          {/* 故事编辑器入口 - 移动端隐藏 */}
           <Button
             onClick={() => setPhase('editor')}
             variant="ghost"
             size="md"
-            className="w-64 flex items-center justify-center gap-2"
+            className="w-full sm:w-64 flex items-center justify-center gap-2 hidden sm:flex"
           >
             <PenTool className="w-4 h-4" />
             故事编辑器 (UGC)
           </Button>
 
-          <div className="flex gap-4 justify-center pt-4">
+          <div className="flex gap-3 sm:gap-4 justify-center pt-3 sm:pt-4">
             <Button
               onClick={() => setShowSettings(true)}
               variant="ghost"
               size="sm"
+              className="!min-w-[44px] !min-h-[44px]"
             >
-              <Settings className="w-4 h-4" />
+              <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
             <Button
               onClick={() => setShowInfo(true)}
               variant="ghost"
               size="sm"
+              className="!min-w-[44px] !min-h-[44px]"
             >
-              <Info className="w-4 h-4" />
+              <Info className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
             <Button
               onClick={() => updateSettings({ soundEnabled: !settings.soundEnabled })}
               variant="ghost"
               size="sm"
+              className="!min-w-[44px] !min-h-[44px]"
             >
               {settings.soundEnabled ? (
-                <Volume2 className="w-4 h-4" />
+                <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
               ) : (
-                <VolumeX className="w-4 h-4" />
+                <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
             </Button>
-            {/* GM入口（开发者） */}
+            {/* GM入口（开发者）- 移动端隐藏 */}
             <Button
               onClick={() => setShowGMAccess(true)}
               variant="ghost"
               size="sm"
               title="开发者模式"
+              className="!min-w-[44px] !min-h-[44px] hidden sm:flex"
             >
-              <Wrench className="w-4 h-4" />
+              <Wrench className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
           </div>
         </motion.div>
@@ -197,25 +201,25 @@ export function MenuScreen() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.1 }}
-            className="mt-12"
+            className="mt-8 sm:mt-12"
           >
             <Panel variant="dark" className="inline-block">
-              <div className="flex gap-8 px-4">
+              <div className="flex gap-4 sm:gap-8 px-2 sm:px-4">
                 <div className="text-center">
-                  <p className="font-pixel-title text-xs text-pixel-gray">等级</p>
-                  <p className="font-pixel-title text-lg text-pixel-gold">{player.level}</p>
+                  <p className="font-pixel-title text-[10px] sm:text-xs text-pixel-gray">等级</p>
+                  <p className="font-pixel-title text-base sm:text-lg text-pixel-gold">{player.level}</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-pixel-title text-xs text-pixel-gray">胜率</p>
-                  <p className="font-pixel-title text-lg text-pixel-green">
+                  <p className="font-pixel-title text-[10px] sm:text-xs text-pixel-gray">胜率</p>
+                  <p className="font-pixel-title text-base sm:text-lg text-pixel-green">
                     {player.stats.totalCases > 0 
                       ? Math.round((player.stats.casesWon / player.stats.totalCases) * 100)
                       : 0}%
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="font-pixel-title text-xs text-pixel-gray">连胜</p>
-                  <p className="font-pixel-title text-lg text-yellow-400">
+                  <p className="font-pixel-title text-[10px] sm:text-xs text-pixel-gray">连胜</p>
+                  <p className="font-pixel-title text-base sm:text-lg text-yellow-400">
                     {player.stats.currentWinStreak}
                   </p>
                 </div>
@@ -230,7 +234,7 @@ export function MenuScreen() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5 }}
-        className="absolute bottom-4 font-pixel-body text-xs text-pixel-gray"
+        className="absolute bottom-4 safe-area-bottom font-pixel-body text-[10px] sm:text-xs text-pixel-gray"
       >
         v1.0.0 | Powered by AI
       </motion.p>

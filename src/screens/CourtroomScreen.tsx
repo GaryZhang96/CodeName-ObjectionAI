@@ -339,9 +339,12 @@ export function CourtroomScreen() {
     }
   };
 
+  // 移动端工具面板状态
+  const [showMobileTools, setShowMobileTools] = useState(false);
+
   return (
     <div className={cn(
-      "min-h-screen bg-court-primary",
+      "min-h-screen min-h-[100dvh] bg-court-primary",
       showObjectionEffect && "objection-shake"
     )}>
       <StatusBar />
@@ -355,18 +358,18 @@ export function CourtroomScreen() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
           >
-            <div className="font-pixel-title text-6xl text-pixel-red glow-text">
+            <div className="font-pixel-title text-4xl sm:text-6xl text-pixel-red glow-text">
               突破！
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="pt-16 pb-4 px-4 h-screen flex flex-col">
-        {/* 法庭布局 - 5点式 */}
-        <div className="flex-1 grid grid-cols-12 gap-4 max-h-[calc(100vh-200px)]">
+      {/* PC端布局 */}
+      <div className="hidden md:block pt-16 pb-4 px-4 h-screen">
+        <div className="flex-1 grid grid-cols-12 gap-4 h-[calc(100vh-5rem)]">
           {/* 左侧：玩家信息和工具 */}
-          <div className="col-span-3 space-y-3">
+          <div className="col-span-3 space-y-3 overflow-y-auto">
             {/* 玩家（辩护律师） */}
             <Panel variant="highlight" className="text-center">
               <User className="w-8 h-8 mx-auto text-pixel-gold mb-2" />
@@ -383,7 +386,7 @@ export function CourtroomScreen() {
             {/* 逻辑锁进度 */}
             <Panel variant="dark">
               <h3 className="font-pixel-title text-xs text-pixel-gold mb-2">逻辑锁</h3>
-              <div className="flex gap-1">
+              <div className="flex flex-wrap gap-1">
                 {currentCase.logicalLocks.map((lock, i) => (
                   <div
                     key={lock.id}
@@ -524,7 +527,7 @@ export function CourtroomScreen() {
           </div>
 
           {/* 右侧：检方和陪审团 */}
-          <div className="col-span-3 space-y-3">
+          <div className="col-span-3 space-y-3 overflow-y-auto">
             {/* 检察官 */}
             <Panel variant="default" className="text-center">
               <User className="w-8 h-8 mx-auto text-pixel-red mb-2" />
@@ -555,6 +558,153 @@ export function CourtroomScreen() {
                 {currentCase.defendant.occupation}, {currentCase.defendant.age}岁
               </p>
             </Panel>
+          </div>
+        </div>
+      </div>
+
+      {/* 移动端布局 */}
+      <div className="md:hidden flex flex-col h-[100dvh]">
+        {/* 顶部状态栏 (已有StatusBar) */}
+        <div className="pt-14" />
+
+        {/* 顶部快捷信息栏 */}
+        <div className="px-2 py-1 flex items-center justify-between bg-court-secondary/80 border-b border-pixel-gray/30">
+          <div className="flex items-center gap-2">
+            <Gavel className="w-4 h-4 text-pixel-gold" />
+            <span className="font-pixel-title text-[10px] text-pixel-gold">{courtroom.judge.name}</span>
+            <div className="w-12 h-1.5 bg-pixel-dark border border-pixel-gray">
+              <div 
+                className={cn(
+                  'h-full',
+                  courtroom.judge.patience > 60 ? 'bg-pixel-green' :
+                  courtroom.judge.patience > 30 ? 'bg-yellow-400' : 'bg-pixel-red'
+                )}
+                style={{ width: `${courtroom.judge.patience}%` }}
+              />
+            </div>
+          </div>
+          
+          {/* 逻辑锁进度 */}
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] text-pixel-gray">锁:</span>
+            <div className="flex gap-0.5">
+              {currentCase.logicalLocks.map((lock, i) => (
+                <div
+                  key={lock.id}
+                  className={cn(
+                    'w-4 h-4 border flex items-center justify-center text-[8px]',
+                    lock.isBroken 
+                      ? 'border-pixel-green bg-green-900/50 text-pixel-green' 
+                      : 'border-pixel-gray bg-pixel-dark text-pixel-gray'
+                  )}
+                >
+                  {lock.isBroken ? '✓' : i + 1}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 当前证人 */}
+          {currentWitness && (
+            <div className="flex items-center gap-1">
+              <User className="w-3 h-3 text-pixel-blue" />
+              <span className="text-[10px] text-pixel-light truncate max-w-[60px]">{currentWitness.name}</span>
+            </div>
+          )}
+        </div>
+
+        {/* 对话区域 - 主要内容 */}
+        <div className="flex-1 overflow-hidden flex flex-col px-2 py-2">
+          <div className="flex-1 overflow-y-auto space-y-2 touch-scroll">
+            {courtroom.messages.map((msg) => (
+              <MessageBubble key={msg.id} message={msg} />
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        {/* 底部输入和工具栏 */}
+        <div className="border-t border-pixel-gray/30 bg-court-secondary safe-area-bottom">
+          {/* 工具栏 */}
+          <AnimatePresence>
+            {showMobileTools && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="border-b border-pixel-gray/30 overflow-hidden"
+              >
+                <div className="p-2 grid grid-cols-4 gap-2">
+                  <button
+                    onClick={() => { setShowWitnessSelect(true); setShowMobileTools(false); }}
+                    className="flex flex-col items-center gap-1 p-2 bg-pixel-dark rounded active:bg-court-accent"
+                    disabled={isProcessing}
+                  >
+                    <Users className="w-5 h-5 text-pixel-gold" />
+                    <span className="text-[10px] text-pixel-light">传唤</span>
+                  </button>
+                  <button
+                    onClick={() => { setShowEvidenceModal(true); setShowMobileTools(false); }}
+                    className="flex flex-col items-center gap-1 p-2 bg-pixel-dark rounded active:bg-court-accent"
+                    disabled={isProcessing}
+                  >
+                    <Gavel className="w-5 h-5 text-pixel-gold" />
+                    <span className="text-[10px] text-pixel-light">证据</span>
+                  </button>
+                  <button
+                    onClick={() => { handleRequestHint(); setShowMobileTools(false); }}
+                    className="flex flex-col items-center gap-1 p-2 bg-pixel-dark rounded active:bg-court-accent"
+                    disabled={isProcessing}
+                  >
+                    <HelpCircle className="w-5 h-5 text-pixel-gold" />
+                    <span className="text-[10px] text-pixel-light">求助</span>
+                  </button>
+                  <button
+                    onClick={() => { handleRequestClosing(); setShowMobileTools(false); }}
+                    className="flex flex-col items-center gap-1 p-2 bg-pixel-dark rounded active:bg-red-900/50"
+                    disabled={isProcessing || courtroom.closingRequested}
+                  >
+                    <Gavel className="w-5 h-5 text-pixel-red" />
+                    <span className="text-[10px] text-pixel-red">结案</span>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* 输入框 */}
+          <div className="p-2 flex gap-2">
+            <button
+              onClick={() => setShowMobileTools(!showMobileTools)}
+              className={cn(
+                "p-3 border-2 rounded transition-colors",
+                showMobileTools ? "border-pixel-gold bg-court-accent" : "border-pixel-gray bg-pixel-dark"
+              )}
+            >
+              <HelpCircle className="w-5 h-5 text-pixel-gold" />
+            </button>
+            <input
+              type="text"
+              value={playerInput}
+              onChange={(e) => setPlayerInput(e.target.value)}
+              placeholder="输入发言..."
+              className="flex-1 px-3 py-2 bg-pixel-dark border-2 border-pixel-gray text-pixel-light text-sm rounded focus:border-pixel-gold focus:outline-none"
+              style={{ fontSize: '16px' }} // 防止iOS缩放
+              disabled={isProcessing}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+              }}
+            />
+            <Button
+              onClick={handleSubmit}
+              disabled={!playerInput.trim() || isProcessing}
+              className="!px-4 !min-w-[44px]"
+            >
+              <Send className="w-5 h-5" />
+            </Button>
           </div>
         </div>
       </div>
@@ -633,15 +783,15 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: Courtr
   const getSpeakerStyle = () => {
     switch (message.speaker) {
       case 'player':
-        return 'bg-court-accent border-pixel-gold ml-8';
+        return 'bg-court-accent border-pixel-gold ml-4 sm:ml-8';
       case 'witness':
-        return 'bg-pixel-dark border-pixel-blue mr-8';
+        return 'bg-pixel-dark border-pixel-blue mr-4 sm:mr-8';
       case 'prosecutor':
-        return 'bg-red-900/30 border-pixel-red mr-8';
+        return 'bg-red-900/30 border-pixel-red mr-4 sm:mr-8';
       case 'judge':
-        return 'bg-yellow-900/30 border-yellow-600 mx-8';
+        return 'bg-yellow-900/30 border-yellow-600 mx-2 sm:mx-8';
       case 'system':
-        return 'bg-pixel-dark/50 border-pixel-gray mx-12 text-center italic';
+        return 'bg-pixel-dark/50 border-pixel-gray mx-2 sm:mx-12 text-center italic';
       default:
         return 'bg-pixel-dark border-pixel-gray';
     }
@@ -667,26 +817,26 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: Courtr
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        'p-3 border-2 rounded',
+        'p-2 sm:p-3 border-2 rounded',
         getSpeakerStyle(),
         message.isKeyMoment && 'ring-2 ring-yellow-400'
       )}
     >
       {message.speaker !== 'system' && (
-        <p className={cn('font-pixel-title text-xs mb-1', getSpeakerColor())}>
+        <p className={cn('font-pixel-title text-[10px] sm:text-xs mb-0.5 sm:mb-1', getSpeakerColor())}>
           {message.speakerName}
           {message.emotion && (
-            <span className="ml-2 text-pixel-gray">
+            <span className="ml-1 sm:ml-2 text-pixel-gray text-[10px]">
               ({message.emotion})
             </span>
           )}
         </p>
       )}
-      <p className="font-pixel-body text-sm text-pixel-light whitespace-pre-wrap">
+      <p className="font-pixel-body text-xs sm:text-sm text-pixel-light whitespace-pre-wrap">
         {message.content}
       </p>
       {message.isKeyMoment && (
-        <span className="text-xs text-yellow-400 mt-1 block">⚡ 关键时刻</span>
+        <span className="text-[10px] sm:text-xs text-yellow-400 mt-1 block">⚡ 关键</span>
       )}
     </motion.div>
   );
