@@ -19,7 +19,7 @@ import {
 } from '@/screens';
 
 function App() {
-  const { phase, isLoading, loadingMessage, settings, error, setError } = useGameStore();
+  const { phase, isLoading, loadingMessage, error, setError } = useGameStore();
 
   // 错误提示
   useEffect(() => {
