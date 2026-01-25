@@ -11,30 +11,30 @@ export default {
         'pixel-body': ['"VT323"', 'monospace'],
       },
       colors: {
-        // 主色调 - 琥珀色复古终端风格
+        // 主色调 - 温暖卡通风格
         amber: {
           glow: '#ffb000',
           dim: '#996600',
           dark: '#332200',
         },
-        // 深蓝法庭风格
+        // 温暖律所风格 - 卡通化配色
         court: {
-          primary: '#1a1a2e',
-          secondary: '#16213e',
-          accent: '#0f3460',
-          highlight: '#e94560',
+          primary: '#f5f0e8',     // 温暖米黄色背景
+          secondary: '#fff8f0',   // 纸张白色
+          accent: '#6b8e23',      // 橄榄绿(律师事务所感)
+          highlight: '#d4a574',   // 暖棕色高光
         },
-        // 像素游戏风格
+        // 卡通游戏风格
         pixel: {
-          black: '#0d0d0d',
-          dark: '#1a1a1a',
-          gray: '#333333',
-          light: '#cccccc',
-          white: '#f0f0f0',
-          gold: '#ffd700',
-          red: '#ff4444',
-          green: '#44ff44',
-          blue: '#4444ff',
+          black: '#2d2d2d',
+          dark: '#4a4a4a',
+          gray: '#7a7a7a',
+          light: '#3a3a3a',       // 深色文字用于浅背景
+          white: '#ffffff',
+          gold: '#f4a460',        // 暖金色
+          red: '#ff6b6b',         // 柔和红色
+          green: '#51cf66',       // 生机绿色
+          blue: '#4dabf7',        // 明亮蓝色
         }
       },
       animation: {
@@ -74,12 +74,19 @@ export default {
         },
       },
       boxShadow: {
-        'pixel': '4px 4px 0px 0px rgba(0,0,0,1)',
-        'pixel-sm': '2px 2px 0px 0px rgba(0,0,0,1)',
-        'pixel-lg': '6px 6px 0px 0px rgba(0,0,0,1)',
-        'glow-amber': '0 0 20px rgba(255, 176, 0, 0.5)',
-        'glow-red': '0 0 20px rgba(255, 68, 68, 0.5)',
-        'glow-green': '0 0 20px rgba(68, 255, 68, 0.5)',
+        'pixel': '4px 4px 0px 0px rgba(0,0,0,0.15)',
+        'pixel-sm': '2px 2px 0px 0px rgba(0,0,0,0.1)',
+        'pixel-lg': '6px 6px 0px 0px rgba(0,0,0,0.2)',
+        'glow-amber': '0 0 20px rgba(255, 176, 0, 0.3)',
+        'glow-red': '0 0 20px rgba(255, 107, 107, 0.3)',
+        'glow-green': '0 0 20px rgba(81, 207, 102, 0.3)',
+        'soft': '0 2px 8px rgba(0, 0, 0, 0.1)',
+        'soft-lg': '0 4px 16px rgba(0, 0, 0, 0.15)',
+      },
+      borderRadius: {
+        'cartoon': '12px',
+        'cartoon-lg': '20px',
+        'cartoon-xl': '28px',
       },
     },
   },

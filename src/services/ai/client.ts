@@ -27,6 +27,32 @@ export function getClient(): OpenAI {
 }
 
 /**
+ * 性能监控工具
+ */
+interface PerformanceMetrics {
+  totalCalls: number;
+  totalTime: number;
+  averageTime: number;
+  slowestCall: number;
+  fastestCall: number;
+}
+
+const performanceMetrics: PerformanceMetrics = {
+  totalCalls: 0,
+  totalTime: 0,
+  averageTime: 0,
+  slowestCall: 0,
+  fastestCall: Infinity,
+};
+
+/**
+ * 获取性能指标
+ */
+export function getPerformanceMetrics(): PerformanceMetrics {
+  return { ...performanceMetrics };
+}
+
+/**
  * 通用的 AI 调用函数
  */
 export async function callAI<T>(options: {
@@ -48,6 +74,16 @@ export async function callAI<T>(options: {
     responseFormat = 'json',
   } = options;
 
+  // 性能监控 - 开始计时
+  const startTime = performance.now();
+  const callId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
+  console.log(`[AI Call ${callId}] 开始调用`, {
+    model,
+    promptLength: systemPrompt.length + userPrompt.length,
+    maxTokens,
+  });
+
   try {
     const completion = await client.chat.completions.create({
       model,
@@ -58,6 +94,23 @@ export async function callAI<T>(options: {
       temperature,
       max_tokens: maxTokens,
       response_format: responseFormat === 'json' ? { type: 'json_object' } : undefined,
+    });
+
+    // 性能监控 - 结束计时
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+    
+    // 更新性能指标
+    performanceMetrics.totalCalls++;
+    performanceMetrics.totalTime += duration;
+    performanceMetrics.averageTime = performanceMetrics.totalTime / performanceMetrics.totalCalls;
+    performanceMetrics.slowestCall = Math.max(performanceMetrics.slowestCall, duration);
+    performanceMetrics.fastestCall = Math.min(performanceMetrics.fastestCall, duration);
+    
+    console.log(`[AI Call ${callId}] 完成`, {
+      duration: `${duration.toFixed(0)}ms`,
+      tokens: completion.usage?.total_tokens || 'N/A',
+      avgTime: `${performanceMetrics.averageTime.toFixed(0)}ms`,
     });
 
     const content = completion.choices[0]?.message?.content;
@@ -81,6 +134,15 @@ export async function callAI<T>(options: {
 
     return content as T;
   } catch (error: unknown) {
+    // 性能监控 - 记录失败
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+    
+    console.error(`[AI Call ${callId}] 失败`, {
+      duration: `${duration.toFixed(0)}ms`,
+      error,
+    });
+    
     // 提供更详细的错误信息
     const err = error as Error & { status?: number; code?: string };
     console.error('AI 调用失败:', {

@@ -6,7 +6,7 @@
 import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
-import { LoadingScreen } from '@/components/game';
+import { LoadingScreen, PerformanceMonitor } from '@/components/game';
 import {
   MenuScreen,
   OfficeScreen,
@@ -55,22 +55,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-court-primary text-pixel-light overflow-hidden relative">
-      {/* 扫描线效果 */}
-      {settings.scanlineEffect && (
-        <div className="scanline-overlay pointer-events-none" />
-      )}
-
-      {/* CRT 效果边缘 */}
-      <div className="fixed inset-0 pointer-events-none z-40">
-        <div 
-          className="absolute inset-0"
-          style={{
-            background: 'radial-gradient(ellipse at center, transparent 0%, transparent 70%, rgba(0,0,0,0.4) 100%)',
-          }}
-        />
-      </div>
-
+    <div className="min-h-screen bg-court-primary text-pixel-dark overflow-hidden relative">
       {/* 主内容 */}
       <AnimatePresence mode="wait">
         <motion.div
@@ -121,6 +106,9 @@ function App() {
           Lex Machina v1.0
         </p>
       </div>
+
+      {/* 性能监控 (开发模式) */}
+      <PerformanceMonitor enabled={import.meta.env.DEV} />
     </div>
   );
 }

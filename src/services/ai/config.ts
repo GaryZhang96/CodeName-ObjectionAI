@@ -7,12 +7,12 @@ export const AI_CONFIG = {
   // OpenRouter API 端点
   baseURL: 'https://openrouter.ai/api/v1',
   
-  // 默认模型（使用 Gemini Flash 以获得快速响应）
-  // 可选模型: google/gemini-flash-1.5, google/gemini-pro, anthropic/claude-3-haiku, openai/gpt-4o-mini
-  defaultModel: import.meta.env.VITE_AI_MODEL || 'google/gemini-flash-1.5',
+  // 默认模型（使用 Gemini 2.0 Flash 获得最快响应）
+  // 可选模型: google/gemini-2.0-flash-exp, google/gemini-flash-1.5, anthropic/claude-3-haiku
+  defaultModel: import.meta.env.VITE_AI_MODEL || 'google/gemini-2.0-flash-exp',
   
   // 用于复杂推理的模型
-  reasoningModel: import.meta.env.VITE_AI_REASONING_MODEL || 'google/gemini-flash-1.5',
+  reasoningModel: import.meta.env.VITE_AI_REASONING_MODEL || 'google/gemini-2.0-flash-exp',
   
   // 温度设置
   temperature: {
@@ -21,11 +21,11 @@ export const AI_CONFIG = {
     judgment: 0.3,        // 判决需要一致性
   },
   
-  // 最大token数
+  // 最大token数 - 优化后的数值(减少不必要的长响应)
   maxTokens: {
-    caseGeneration: 4000,
-    courtroom: 1500,
-    judgment: 2000,
+    caseGeneration: 3000,  // 从 4000 降至 3000
+    courtroom: 800,        // 从 1500 降至 800 (庭审对话应简短有力)
+    judgment: 1500,        // 从 2000 降至 1500
   },
 };
 

@@ -6,4 +6,5 @@ export * from './StatusBar';
 export * from './LoadingScreen';
 export * from './JuryPanel';
 export * from './EvidencePanel';
+export * from './PerformanceMonitor';
 

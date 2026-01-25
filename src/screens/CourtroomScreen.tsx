@@ -12,7 +12,7 @@ import {
   Gavel,
 } from 'lucide-react';
 import { Button, Panel, TextArea, Modal } from '@/components/ui';
-import { StatusBar, JuryPanel, EvidencePanel } from '@/components/game';
+import { StatusBar, JuryPanel } from '@/components/game';
 import { useGameStore } from '@/store/gameStore';
 import { 
   processPlayerStatement, 
@@ -24,7 +24,7 @@ import {
 } from '@/services/ai/courtSimulator';
 import { cn } from '@/lib/utils';
 import { getEmotionDisplay, getProsecutorStyleName, GAME_CONSTANTS } from '@/constants/game';
-import type { CourtroomMessage, Evidence, Witness } from '@/types';
+import type { CourtroomMessage, Witness } from '@/types';
 
 export function CourtroomScreen() {
   const {
@@ -46,7 +46,6 @@ export function CourtroomScreen() {
   const [playerInput, setPlayerInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showWitnessSelect, setShowWitnessSelect] = useState(false);
-  const [showEvidenceModal, setShowEvidenceModal] = useState(false);
   const [showHintModal, setShowHintModal] = useState(false);
   const [currentHint, setCurrentHint] = useState('');
   const [showObjectionEffect, setShowObjectionEffect] = useState(false);
@@ -113,7 +112,7 @@ export function CourtroomScreen() {
       addMessage(createCourtroomMessage(
         'system',
         '系统',
-        '现在轮到辩护律师（你）进行询问。你可以选择传唤证人、提出问题、或出示证据。',
+        '现在轮到辩护律师(你)进行询问。你可以传唤证人并提出问题。',
       ));
     }, 2000);
   }, [currentCase, courtroom, addMessage, updateJurySentiment]);
@@ -263,18 +262,6 @@ export function CourtroomScreen() {
     ));
   };
 
-  // 出示证据
-  const handlePresentEvidence = (evidence: Evidence) => {
-    setShowEvidenceModal(false);
-    
-    addMessage(createCourtroomMessage(
-      'player',
-      player.name,
-      `我方出示证据：${evidence.name}。${evidence.content}`,
-      { isKeyMoment: evidence.isKeyEvidence }
-    ));
-  };
-
   // 请求提示
   const handleRequestHint = async () => {
     if (!useHint()) {
@@ -377,36 +364,6 @@ export function CourtroomScreen() {
               <p className="font-pixel-body text-sm text-pixel-light">{player.name}</p>
             </Panel>
 
-            {/* 证据面板 */}
-            <EvidencePanel 
-              evidence={currentCase.evidence}
-              onSelectEvidence={handlePresentEvidence}
-            />
-
-            {/* 逻辑锁进度 */}
-            <Panel variant="dark">
-              <h3 className="font-pixel-title text-xs text-pixel-gold mb-2">逻辑锁</h3>
-              <div className="flex flex-wrap gap-1">
-                {currentCase.logicalLocks.map((lock, i) => (
-                  <div
-                    key={lock.id}
-                    className={cn(
-                      'w-6 h-6 border-2 flex items-center justify-center text-xs',
-                      lock.isBroken 
-                        ? 'border-pixel-green bg-green-900/50 text-pixel-green' 
-                        : 'border-pixel-gray bg-pixel-dark text-pixel-gray'
-                    )}
-                    title={lock.isBroken ? '已破解' : '未破解'}
-                  >
-                    {lock.isBroken ? '✓' : i + 1}
-                  </div>
-                ))}
-              </div>
-              <p className="font-pixel-body text-xs text-pixel-gray mt-2">
-                已破解: {brokenLocks.length}/{currentCase.logicalLocks.length}
-              </p>
-            </Panel>
-
             {/* 工具按钮 */}
             <div className="space-y-2">
               <Button
@@ -417,14 +374,6 @@ export function CourtroomScreen() {
               >
                 <Users className="w-4 h-4 mr-1" />
                 传唤证人
-              </Button>
-              <Button
-                onClick={() => setShowEvidenceModal(true)}
-                variant="ghost"
-                className="w-full text-xs"
-                disabled={isProcessing}
-              >
-                出示证据
               </Button>
               <Button
                 onClick={handleRequestHint}
@@ -584,26 +533,6 @@ export function CourtroomScreen() {
             </div>
           </div>
           
-          {/* 逻辑锁进度 */}
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] text-pixel-gray">锁:</span>
-            <div className="flex gap-0.5">
-              {currentCase.logicalLocks.map((lock, i) => (
-                <div
-                  key={lock.id}
-                  className={cn(
-                    'w-4 h-4 border flex items-center justify-center text-[8px]',
-                    lock.isBroken 
-                      ? 'border-pixel-green bg-green-900/50 text-pixel-green' 
-                      : 'border-pixel-gray bg-pixel-dark text-pixel-gray'
-                  )}
-                >
-                  {lock.isBroken ? '✓' : i + 1}
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* 当前证人 */}
           {currentWitness && (
             <div className="flex items-center gap-1">
@@ -634,7 +563,7 @@ export function CourtroomScreen() {
                 exit={{ height: 0, opacity: 0 }}
                 className="border-b border-pixel-gray/30 overflow-hidden"
               >
-                <div className="p-2 grid grid-cols-4 gap-2">
+                <div className="p-2 grid grid-cols-3 gap-2">
                   <button
                     onClick={() => { setShowWitnessSelect(true); setShowMobileTools(false); }}
                     className="flex flex-col items-center gap-1 p-2 bg-pixel-dark rounded active:bg-court-accent"
@@ -642,14 +571,6 @@ export function CourtroomScreen() {
                   >
                     <Users className="w-5 h-5 text-pixel-gold" />
                     <span className="text-[10px] text-pixel-light">传唤</span>
-                  </button>
-                  <button
-                    onClick={() => { setShowEvidenceModal(true); setShowMobileTools(false); }}
-                    className="flex flex-col items-center gap-1 p-2 bg-pixel-dark rounded active:bg-court-accent"
-                    disabled={isProcessing}
-                  >
-                    <Gavel className="w-5 h-5 text-pixel-gold" />
-                    <span className="text-[10px] text-pixel-light">证据</span>
                   </button>
                   <button
                     onClick={() => { handleRequestHint(); setShowMobileTools(false); }}
@@ -735,29 +656,6 @@ export function CourtroomScreen() {
                   <span className="text-xs text-pixel-red">已崩溃</span>
                 )}
               </div>
-            </button>
-          ))}
-        </div>
-      </Modal>
-
-      {/* 证据选择弹窗 */}
-      <Modal
-        isOpen={showEvidenceModal}
-        onClose={() => setShowEvidenceModal(false)}
-        title="选择证据出示"
-      >
-        <div className="space-y-3 max-h-96 overflow-y-auto">
-          {currentCase.evidence.filter(e => e.discovered).map(evidence => (
-            <button
-              key={evidence.id}
-              onClick={() => handlePresentEvidence(evidence)}
-              className="w-full p-3 text-left border-2 bg-pixel-dark border-pixel-gray hover:border-pixel-gold transition-all"
-            >
-              <p className="font-pixel-body text-pixel-light">{evidence.name}</p>
-              <p className="text-xs text-pixel-gray mt-1">{evidence.description}</p>
-              {evidence.isKeyEvidence && (
-                <span className="text-xs text-yellow-400">★ 关键证据</span>
-              )}
             </button>
           ))}
         </div>

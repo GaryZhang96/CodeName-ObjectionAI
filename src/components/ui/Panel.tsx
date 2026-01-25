@@ -1,5 +1,5 @@
 /**
- * 像素风面板组件
+ * 卡通风格面板组件
  */
 
 import { type HTMLAttributes, forwardRef } from 'react';
@@ -14,9 +14,9 @@ export interface PanelProps extends HTMLAttributes<HTMLDivElement> {
 export const Panel = forwardRef<HTMLDivElement, PanelProps>(
   ({ className, variant = 'default', animate = false, children, ...props }, ref) => {
     const variants = {
-      default: 'bg-court-secondary border-pixel-gold',
-      dark: 'bg-pixel-dark border-pixel-gray',
-      highlight: 'bg-court-accent border-pixel-gold gold-pulse',
+      default: 'bg-court-secondary border-court-accent/20 shadow-soft-lg',
+      dark: 'bg-white border-pixel-gray/20 shadow-soft',
+      highlight: 'bg-court-highlight/10 border-court-highlight/30 shadow-soft-lg',
     };
 
     if (animate) {
@@ -27,7 +27,7 @@ export const Panel = forwardRef<HTMLDivElement, PanelProps>(
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
           className={cn(
-            'border-4 shadow-pixel-lg p-4',
+            'border-2 rounded-cartoon p-4',
             variants[variant],
             className
           )}
@@ -42,7 +42,7 @@ export const Panel = forwardRef<HTMLDivElement, PanelProps>(
       <div
         ref={ref}
         className={cn(
-          'border-4 shadow-pixel-lg p-4',
+          'border-2 rounded-cartoon p-4',
           variants[variant],
           className
         )}
