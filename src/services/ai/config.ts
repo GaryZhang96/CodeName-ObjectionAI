@@ -35,7 +35,7 @@ export const AI_CONFIG = {
 export function getAPIKey(): string {
   const key = import.meta.env.VITE_OPENROUTER_API_KEY;
   if (!key) {
-    throw new Error('请在 .env.local 文件中设置 VITE_OPENROUTER_API_KEY');
+    throw new Error('❌ 未配置 OpenRouter API Key。\n\n请在 Render 的 Environment 设置中添加 VITE_OPENROUTER_API_KEY 环境变量。\n\n获取 API Key: https://openrouter.ai/');
   }
   return key;
 }
