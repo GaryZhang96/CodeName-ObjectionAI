@@ -366,8 +366,8 @@ export function CourtroomScreen() {
           )}
         </AnimatePresence>
 
-        {/* PC端布局 */}
-      <div className="hidden md:block pt-16 pb-4 px-4 h-screen">
+        {/* PC端网格布局 */}
+        <div className="pt-16 pb-4 px-4 h-screen">
         <div className="flex-1 grid grid-cols-12 gap-4 h-[calc(100vh-5rem)]">
           {/* 左侧：玩家信息和工具 */}
           <div className="col-span-3 space-y-3 overflow-y-auto">
@@ -523,6 +523,7 @@ export function CourtroomScreen() {
             </Panel>
           </div>
         </div>
+      </div>
       </div>
 
       {/* PC端证人选择弹窗 */}

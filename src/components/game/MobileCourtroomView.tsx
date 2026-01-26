@@ -5,7 +5,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Users, HelpCircle, Gavel, ChevronDown, X } from 'lucide-react';
+import { Send, Users, HelpCircle, X, Gavel } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { useGameStore } from '@/store/gameStore';
 import { 
@@ -14,13 +14,12 @@ import {
   getPartnerHint,
 } from '@/services/ai/courtSimulator';
 import { cn } from '@/lib/utils';
-import { GAME_CONSTANTS } from '@/constants/game';
-import type { CourtroomMessage, Witness } from '@/types';
+import type { CourtroomMessage, Witness, Case, CourtroomState, PlayerStats } from '@/types';
 
 interface MobileCourtroomViewProps {
-  currentCase: NonNullable<ReturnType<typeof useGameStore>['currentCase']>;
-  courtroom: NonNullable<ReturnType<typeof useGameStore>['courtroom']>;
-  player: ReturnType<typeof useGameStore>['player'];
+  currentCase: Case;
+  courtroom: CourtroomState;
+  player: PlayerStats;
   currentWitness?: Witness;
 }
 
@@ -38,14 +37,11 @@ export function MobileCourtroomView({
     updateJudgePatience,
     breakLogicalLock,
     useHint,
-    setVerdict,
-    setPhase,
   } = useGameStore();
 
   const [playerInput, setPlayerInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showWitnessSelect, setShowWitnessSelect] = useState(false);
-  const [showActions, setShowActions] = useState(false);
   const [currentHint, setCurrentHint] = useState('');
   const [showHintModal, setShowHintModal] = useState(false);
   
@@ -64,7 +60,6 @@ export function MobileCourtroomView({
     const input = playerInput.trim();
     setPlayerInput('');
     setIsProcessing(true);
-    setShowActions(false);
 
     addMessage(createCourtroomMessage('player', player.name, input));
 
@@ -137,7 +132,6 @@ export function MobileCourtroomView({
   const handleCallWitness = (witness: Witness) => {
     setCurrentWitness(witness.id);
     setShowWitnessSelect(false);
-    setShowActions(false);
     
     addMessage(createCourtroomMessage('player', player.name, `传唤证人 ${witness.name}。`));
     addMessage(createCourtroomMessage('witness', witness.name, witness.initialTestimony, { emotion: witness.currentEmotion }));
@@ -151,12 +145,11 @@ export function MobileCourtroomView({
     }
 
     setIsProcessing(true);
-    setShowActions(false);
     try {
       const hint = await getPartnerHint(
         currentCase,
         courtroom.messages,
-        currentCase.logicalLocks.filter(l => !l.isBroken).map(l => l.id)
+        currentCase.logicalLocks.filter((l: any) => !l.isBroken).map((l: any) => l.id)
       );
       setCurrentHint(hint);
       setShowHintModal(true);
@@ -202,7 +195,7 @@ export function MobileCourtroomView({
 
       {/* 对话区域 */}
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
-        {courtroom.messages.map((msg) => (
+        {courtroom.messages.map((msg: CourtroomMessage) => (
           <MessageBubbleMobile key={msg.id} message={msg} />
         ))}
         <div ref={messagesEndRef} />
@@ -287,7 +280,7 @@ export function MobileCourtroomView({
               </div>
 
               <div className="space-y-3">
-                {currentCase.witnesses.map(witness => (
+                {currentCase.witnesses.map((witness: Witness) => (
                   <button
                     key={witness.id}
                     onClick={() => handleCallWitness(witness)}
