@@ -4,8 +4,9 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Scale, Play, Settings, Info, Volume2, VolumeX, Book, Wrench, PenTool } from 'lucide-react';
+import { Scale, Play, Settings, Info, Volume2, VolumeX, Book, Wrench, PenTool, Wifi } from 'lucide-react';
 import { Button, Panel, Modal } from '@/components/ui';
+import { AIDiagnostics } from '@/components/game/AIDiagnostics';
 import { useGameStore } from '@/store/gameStore';
 import { useCollectionStore } from '@/store/collectionStore';
 import { isAPIConfigured } from '@/services/ai/config';
@@ -17,6 +18,7 @@ export function MenuScreen() {
   const [showInfo, setShowInfo] = useState(false);
   const [showAPIWarning, setShowAPIWarning] = useState(false);
   const [showGMAccess, setShowGMAccess] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   const handleStartGame = () => {
     if (!isAPIConfigured()) {
@@ -154,6 +156,15 @@ export function MenuScreen() {
           </Button>
 
           <div className="flex gap-3 sm:gap-4 justify-center pt-3 sm:pt-4">
+            <Button
+              onClick={() => setShowDiagnostics(true)}
+              variant="ghost"
+              size="sm"
+              className="!min-w-[44px] !min-h-[44px]"
+              title="AI 诊断"
+            >
+              <Wifi className="w-4 h-4 sm:w-5 sm:h-5" />
+            </Button>
             <Button
               onClick={() => setShowSettings(true)}
               variant="ghost"
@@ -327,6 +338,15 @@ export function MenuScreen() {
             知道了
           </Button>
         </div>
+      </Modal>
+
+      {/* AI 诊断弹窗 */}
+      <Modal
+        isOpen={showDiagnostics}
+        onClose={() => setShowDiagnostics(false)}
+        title="AI 连接诊断"
+      >
+        <AIDiagnostics />
       </Modal>
 
       {/* GM入口弹窗 */}

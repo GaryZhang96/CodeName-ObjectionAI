@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Button, Panel, TextArea, Modal } from '@/components/ui';
 import { StatusBar, JuryPanel } from '@/components/game';
+import { MobileCourtroomView } from '@/components/game/MobileCourtroomView';
 import { useGameStore } from '@/store/gameStore';
 import { 
   processPlayerStatement, 
@@ -53,6 +54,8 @@ export function CourtroomScreen() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // 移动端工具面板状态已移至 MobileCourtroomView
 
   // 清理定时器
   useEffect(() => {
@@ -326,33 +329,44 @@ export function CourtroomScreen() {
     }
   };
 
-  // 移动端工具面板状态
-  const [showMobileTools, setShowMobileTools] = useState(false);
+  // 移动端已使用新组件 MobileCourtroomView
 
   return (
     <div className={cn(
       "min-h-screen min-h-[100dvh] bg-court-primary",
       showObjectionEffect && "objection-shake"
     )}>
-      <StatusBar />
-      
-      {/* 异议效果 */}
-      <AnimatePresence>
-        {showObjectionEffect && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          >
-            <div className="font-pixel-title text-4xl sm:text-6xl text-pixel-red glow-text">
-              突破！
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* 移动端使用新的优化布局 */}
+      <div className="md:hidden">
+        <MobileCourtroomView
+          currentCase={currentCase}
+          courtroom={courtroom}
+          player={player}
+          currentWitness={currentWitness}
+        />
+      </div>
 
-      {/* PC端布局 */}
+      {/* PC端保持原布局 */}
+      <div className="hidden md:block">
+        <StatusBar />
+      
+        {/* 异议效果 */}
+        <AnimatePresence>
+          {showObjectionEffect && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+            >
+              <div className="font-pixel-title text-4xl sm:text-6xl text-pixel-red glow-text">
+                突破！
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* PC端布局 */}
       <div className="hidden md:block pt-16 pb-4 px-4 h-screen">
         <div className="flex-1 grid grid-cols-12 gap-4 h-[calc(100vh-5rem)]">
           {/* 左侧：玩家信息和工具 */}
@@ -511,126 +525,7 @@ export function CourtroomScreen() {
         </div>
       </div>
 
-      {/* 移动端布局 */}
-      <div className="md:hidden flex flex-col h-[100dvh]">
-        {/* 顶部状态栏 (已有StatusBar) */}
-        <div className="pt-14" />
-
-        {/* 顶部快捷信息栏 */}
-        <div className="px-2 py-1 flex items-center justify-between bg-court-secondary/80 border-b border-pixel-gray/30">
-          <div className="flex items-center gap-2">
-            <Gavel className="w-4 h-4 text-pixel-gold" />
-            <span className="font-pixel-title text-[10px] text-pixel-gold">{courtroom.judge.name}</span>
-            <div className="w-12 h-1.5 bg-pixel-dark border border-pixel-gray">
-              <div 
-                className={cn(
-                  'h-full',
-                  courtroom.judge.patience > 60 ? 'bg-pixel-green' :
-                  courtroom.judge.patience > 30 ? 'bg-yellow-400' : 'bg-pixel-red'
-                )}
-                style={{ width: `${courtroom.judge.patience}%` }}
-              />
-            </div>
-          </div>
-          
-          {/* 当前证人 */}
-          {currentWitness && (
-            <div className="flex items-center gap-1">
-              <User className="w-3 h-3 text-pixel-blue" />
-              <span className="text-[10px] text-pixel-light truncate max-w-[60px]">{currentWitness.name}</span>
-            </div>
-          )}
-        </div>
-
-        {/* 对话区域 - 主要内容 */}
-        <div className="flex-1 overflow-hidden flex flex-col px-2 py-2">
-          <div className="flex-1 overflow-y-auto space-y-2 touch-scroll">
-            {courtroom.messages.map((msg) => (
-              <MessageBubble key={msg.id} message={msg} />
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
-
-        {/* 底部输入和工具栏 */}
-        <div className="border-t border-pixel-gray/30 bg-court-secondary safe-area-bottom">
-          {/* 工具栏 */}
-          <AnimatePresence>
-            {showMobileTools && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="border-b border-pixel-gray/30 overflow-hidden"
-              >
-                <div className="p-2 grid grid-cols-3 gap-2">
-                  <button
-                    onClick={() => { setShowWitnessSelect(true); setShowMobileTools(false); }}
-                    className="flex flex-col items-center gap-1 p-2 bg-pixel-dark rounded active:bg-court-accent"
-                    disabled={isProcessing}
-                  >
-                    <Users className="w-5 h-5 text-pixel-gold" />
-                    <span className="text-[10px] text-pixel-light">传唤</span>
-                  </button>
-                  <button
-                    onClick={() => { handleRequestHint(); setShowMobileTools(false); }}
-                    className="flex flex-col items-center gap-1 p-2 bg-pixel-dark rounded active:bg-court-accent"
-                    disabled={isProcessing}
-                  >
-                    <HelpCircle className="w-5 h-5 text-pixel-gold" />
-                    <span className="text-[10px] text-pixel-light">求助</span>
-                  </button>
-                  <button
-                    onClick={() => { handleRequestClosing(); setShowMobileTools(false); }}
-                    className="flex flex-col items-center gap-1 p-2 bg-pixel-dark rounded active:bg-red-900/50"
-                    disabled={isProcessing || courtroom.closingRequested}
-                  >
-                    <Gavel className="w-5 h-5 text-pixel-red" />
-                    <span className="text-[10px] text-pixel-red">结案</span>
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* 输入框 */}
-          <div className="p-2 flex gap-2">
-            <button
-              onClick={() => setShowMobileTools(!showMobileTools)}
-              className={cn(
-                "p-3 border-2 rounded transition-colors",
-                showMobileTools ? "border-pixel-gold bg-court-accent" : "border-pixel-gray bg-pixel-dark"
-              )}
-            >
-              <HelpCircle className="w-5 h-5 text-pixel-gold" />
-            </button>
-            <input
-              type="text"
-              value={playerInput}
-              onChange={(e) => setPlayerInput(e.target.value)}
-              placeholder="输入发言..."
-              className="flex-1 px-3 py-2 bg-pixel-dark border-2 border-pixel-gray text-pixel-light text-sm rounded focus:border-pixel-gold focus:outline-none"
-              style={{ fontSize: '16px' }} // 防止iOS缩放
-              disabled={isProcessing}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleSubmit();
-                }
-              }}
-            />
-            <Button
-              onClick={handleSubmit}
-              disabled={!playerInput.trim() || isProcessing}
-              className="!px-4 !min-w-[44px]"
-            >
-              <Send className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* 证人选择弹窗 */}
+      {/* PC端证人选择弹窗 */}
       <Modal
         isOpen={showWitnessSelect}
         onClose={() => setShowWitnessSelect(false)}
