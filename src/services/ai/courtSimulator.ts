@@ -38,7 +38,6 @@ export async function processPlayerStatement(
       playerInput,
       judgePatience
     ),
-    model: AI_CONFIG.defaultModel,
     temperature: AI_CONFIG.temperature.courtroom,
     maxTokens: AI_CONFIG.maxTokens.courtroom,
     responseFormat: 'json',
@@ -132,7 +131,6 @@ export async function generateVerdict(
       brokenLocks,
       judgePatience
     ),
-    model: AI_CONFIG.reasoningModel,
     temperature: AI_CONFIG.temperature.judgment,
     maxTokens: AI_CONFIG.maxTokens.judgment,
     responseFormat: 'json',

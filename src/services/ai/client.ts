@@ -1,40 +1,62 @@
 /**
- * OpenRouter API 客户端
- * 封装与 AI 服务的通信
+ * AI 客户端（前端版）
+ *
+ * 架构：前端 → 自家 Express 后端 → OpenRouter
+ *
+ * 设计要点：
+ * 1. 完全不持有 API Key，所有调用走 fetch('/api/ai/chat')
+ * 2. 后端已实现多模型 fallback，这里只处理网络层、JSON 解析、性能监控
+ * 3. 错误分类与后端的 NormalizedError 对齐
+ * 4. 提供 callAIWithRetry：网络瞬断的额外重试
  */
 
-import OpenAI from 'openai';
-import { AI_CONFIG, getAPIKey } from './config';
+import { AI_CONFIG } from './config';
 
-let clientInstance: OpenAI | null = null;
+/** 与服务端 NormalizedError 一致 */
+export type AICallErrorKind =
+  | 'no_api_key'
+  | 'auth_invalid'
+  | 'insufficient_quota'
+  | 'model_not_found'
+  | 'rate_limited'
+  | 'bad_request'
+  | 'server_error'
+  | 'timeout'
+  | 'invalid_json'
+  | 'network'
+  | 'unknown';
 
-/**
- * 获取 OpenAI 客户端实例（单例模式）
- */
-export function getClient(): OpenAI {
-  if (!clientInstance) {
-    clientInstance = new OpenAI({
-      baseURL: AI_CONFIG.baseURL,
-      apiKey: getAPIKey(),
-      dangerouslyAllowBrowser: true, // 允许在浏览器中使用
-      defaultHeaders: {
-        'HTTP-Referer': window.location.origin,
-        'X-Title': 'Lex Machina - 律政先锋',
-      },
-    });
+export class AICallError extends Error {
+  kind: AICallErrorKind;
+  status?: number;
+  model?: string;
+  retryable: boolean;
+
+  constructor(opts: {
+    kind: AICallErrorKind;
+    message: string;
+    status?: number;
+    model?: string;
+    retryable?: boolean;
+  }) {
+    super(opts.message);
+    this.name = 'AICallError';
+    this.kind = opts.kind;
+    this.status = opts.status;
+    this.model = opts.model;
+    this.retryable = opts.retryable ?? false;
   }
-  return clientInstance;
 }
 
-/**
- * 性能监控工具
- */
+// ---------- 性能监控 ----------
+
 interface PerformanceMetrics {
   totalCalls: number;
   totalTime: number;
   averageTime: number;
   slowestCall: number;
   fastestCall: number;
+  lastModel?: string;
 }
 
 const performanceMetrics: PerformanceMetrics = {
@@ -45,15 +67,33 @@ const performanceMetrics: PerformanceMetrics = {
   fastestCall: Infinity,
 };
 
-/**
- * 获取性能指标
- */
 export function getPerformanceMetrics(): PerformanceMetrics {
   return { ...performanceMetrics };
 }
 
+// ---------- 调用 ----------
+
+interface ChatBackendResponse {
+  content: string;
+  model: string;
+  durationMs: number;
+  tokens?: number;
+}
+
+interface ChatBackendError {
+  error: {
+    kind: AICallErrorKind;
+    message: string;
+    status?: number;
+    model?: string;
+    retryable?: boolean;
+  };
+}
+
 /**
- * 通用的 AI 调用函数
+ * 调用后端 /api/ai/chat
+ *
+ * payload 与服务端 ChatPayload 对齐
  */
 export async function callAI<T>(options: {
   systemPrompt: string;
@@ -62,131 +102,210 @@ export async function callAI<T>(options: {
   temperature?: number;
   maxTokens?: number;
   responseFormat?: 'json' | 'text';
+  /** 调试用：禁用 fallback */
+  disableFallback?: boolean;
 }): Promise<T> {
-  const client = getClient();
-  
   const {
     systemPrompt,
     userPrompt,
-    model = AI_CONFIG.defaultModel,
+    model,
     temperature = 0.7,
     maxTokens = 2000,
     responseFormat = 'json',
+    disableFallback,
   } = options;
 
-  // 性能监控 - 开始计时
+  const callId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   const startTime = performance.now();
-  const callId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  
-  console.log(`[AI Call ${callId}] 开始调用`, {
-    model,
+
+  console.log(`[AI ${callId}] → server`, {
+    model: model || 'default',
     promptLength: systemPrompt.length + userPrompt.length,
     maxTokens,
   });
 
+  let response: Response;
   try {
-    const completion = await client.chat.completions.create({
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature,
-      max_tokens: maxTokens,
-      response_format: responseFormat === 'json' ? { type: 'json_object' } : undefined,
+    response = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemPrompt,
+        userPrompt,
+        model,
+        temperature,
+        maxTokens,
+        responseFormat,
+        disableFallback,
+      }),
     });
-
-    // 性能监控 - 结束计时
-    const endTime = performance.now();
-    const duration = endTime - startTime;
-    
-    // 更新性能指标
-    performanceMetrics.totalCalls++;
-    performanceMetrics.totalTime += duration;
-    performanceMetrics.averageTime = performanceMetrics.totalTime / performanceMetrics.totalCalls;
-    performanceMetrics.slowestCall = Math.max(performanceMetrics.slowestCall, duration);
-    performanceMetrics.fastestCall = Math.min(performanceMetrics.fastestCall, duration);
-    
-    console.log(`[AI Call ${callId}] 完成`, {
-      duration: `${duration.toFixed(0)}ms`,
-      tokens: completion.usage?.total_tokens || 'N/A',
-      avgTime: `${performanceMetrics.averageTime.toFixed(0)}ms`,
+  } catch (error) {
+    throw new AICallError({
+      kind: 'network',
+      message: `无法连接到游戏服务器：${(error as Error).message}。请检查网络或刷新页面。`,
+      retryable: true,
     });
-
-    const content = completion.choices[0]?.message?.content;
-    
-    if (!content) {
-      throw new Error('AI 返回了空响应');
-    }
-
-    if (responseFormat === 'json') {
-      try {
-        return JSON.parse(content) as T;
-      } catch {
-        // 尝试提取 JSON
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          return JSON.parse(jsonMatch[0]) as T;
-        }
-        throw new Error('无法解析 AI 返回的 JSON');
-      }
-    }
-
-    return content as T;
-  } catch (error: unknown) {
-    // 性能监控 - 记录失败
-    const endTime = performance.now();
-    const duration = endTime - startTime;
-    
-    console.error(`[AI Call ${callId}] 失败`, {
-      duration: `${duration.toFixed(0)}ms`,
-      error,
-    });
-    
-    // 提供更详细的错误信息
-    const err = error as Error & { status?: number; code?: string };
-    console.error('AI 调用失败:', {
-      message: err.message,
-      status: err.status,
-      code: err.code,
-    });
-    
-    // 根据错误类型提供友好提示
-    if (err.status === 401) {
-      throw new Error('API Key 无效或已过期，请检查配置');
-    } else if (err.status === 429) {
-      throw new Error('请求过于频繁，请稍后再试');
-    } else if (err.status === 400) {
-      throw new Error('请求格式错误，可能是模型不支持当前请求');
-    } else if (err.message?.includes('model')) {
-      throw new Error(`模型不可用: ${model}，请检查模型名称`);
-    }
-    
-    throw new Error(`AI 服务错误: ${err.message || '未知错误'}`);
   }
+
+  // ---- 服务端返回的错误 ----
+  if (!response.ok) {
+    let body: ChatBackendError | null = null;
+    try {
+      body = (await response.json()) as ChatBackendError;
+    } catch {
+      // 无法解析 → 用 HTTP 状态合成
+    }
+    const err = body?.error;
+    throw new AICallError({
+      kind: err?.kind || 'unknown',
+      message:
+        err?.message ||
+        `服务器返回 ${response.status}：${response.statusText || '未知错误'}`,
+      status: err?.status ?? response.status,
+      model: err?.model,
+      retryable: err?.retryable ?? response.status >= 500,
+    });
+  }
+
+  // ---- 正常返回 ----
+  const data = (await response.json()) as ChatBackendResponse;
+  const duration = performance.now() - startTime;
+
+  performanceMetrics.totalCalls++;
+  performanceMetrics.totalTime += duration;
+  performanceMetrics.averageTime =
+    performanceMetrics.totalTime / performanceMetrics.totalCalls;
+  performanceMetrics.slowestCall = Math.max(
+    performanceMetrics.slowestCall,
+    duration
+  );
+  performanceMetrics.fastestCall = Math.min(
+    performanceMetrics.fastestCall,
+    duration
+  );
+  performanceMetrics.lastModel = data.model;
+
+  console.log(`[AI ${callId}] ✓ ${data.model}`, {
+    duration: `${duration.toFixed(0)}ms`,
+    tokens: data.tokens ?? 'N/A',
+  });
+
+  // ---- JSON 解析 ----
+  if (responseFormat === 'json') {
+    try {
+      return JSON.parse(data.content) as T;
+    } catch {
+      const jsonMatch = data.content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          return JSON.parse(jsonMatch[0]) as T;
+        } catch {
+          /* fallthrough */
+        }
+      }
+      throw new AICallError({
+        kind: 'invalid_json',
+        message: `模型 "${data.model}" 返回了无法解析的 JSON。`,
+        model: data.model,
+        retryable: true,
+      });
+    }
+  }
+
+  return data.content as T;
 }
 
 /**
- * 带重试的 AI 调用
+ * 在 callAI 之上加一层指数退避
+ *
+ * 服务端已经做了模型级 fallback，这里只是为了应对前端网络抖动 / 短暂 5xx
  */
 export async function callAIWithRetry<T>(
   options: Parameters<typeof callAI>[0],
-  maxRetries: number = 3
+  maxRetries: number = 2
 ): Promise<T> {
-  let lastError: Error | null = null;
-  
-  for (let i = 0; i < maxRetries; i++) {
+  let lastError: AICallError | null = null;
+
+  for (let i = 0; i <= maxRetries; i++) {
     try {
       return await callAI<T>(options);
     } catch (error) {
-      lastError = error as Error;
-      console.warn(`AI 调用失败，重试 ${i + 1}/${maxRetries}:`, error);
-      
-      // 等待一段时间再重试
-      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      const aiErr =
+        error instanceof AICallError
+          ? error
+          : new AICallError({
+              kind: 'unknown',
+              message: (error as Error).message || '未知错误',
+              retryable: true,
+            });
+      lastError = aiErr;
+
+      if (!aiErr.retryable || i === maxRetries) {
+        throw aiErr;
+      }
+
+      const wait = 800 * (i + 1);
+      console.warn(`[AI] 整体重试 ${i + 1}/${maxRetries}，等待 ${wait}ms`);
+      await new Promise((resolve) => setTimeout(resolve, wait));
     }
   }
-  
-  throw lastError || new Error('AI 调用失败');
+
+  throw (
+    lastError ??
+    new AICallError({ kind: 'unknown', message: 'AI 调用失败' })
+  );
 }
 
+/**
+ * 单模型连通性测试（用于 AIDiagnostics 面板）
+ */
+export async function testModelConnectivity(
+  model: string
+): Promise<
+  { ok: true; durationMs: number } | { ok: false; error: AICallError }
+> {
+  try {
+    const res = await fetch('/api/ai/test-model', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      return { ok: true, durationMs: data.durationMs };
+    }
+    return {
+      ok: false,
+      error: new AICallError({
+        kind: data.error?.kind || 'unknown',
+        message: data.error?.message || '测试失败',
+        status: data.error?.status,
+        model,
+        retryable: data.error?.retryable,
+      }),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: new AICallError({
+        kind: 'network',
+        message: `无法连接到游戏服务器：${(error as Error).message}`,
+        model,
+        retryable: true,
+      }),
+    };
+  }
+}
+
+// ---------- 兼容旧接口 ----------
+
+/**
+ * 旧代码可能调用 resetClient（OpenAI SDK 时代）
+ * 现在前端没有任何持久 client，保留空函数防止编译错误
+ */
+export function resetClient() {
+  // no-op：架构已改为后端代理
+}
+
+// 重新导出 AI_CONFIG 给老代码使用（仅 temperature/maxTokens 还有意义）
+export { AI_CONFIG };

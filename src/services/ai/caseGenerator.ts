@@ -23,7 +23,6 @@ export async function generateCase(
   const result = await callAIWithRetry<Case>({
     systemPrompt: CASE_GENERATION_SYSTEM_PROMPT,
     userPrompt: getCaseGenerationPrompt(difficulty, existingTitles),
-    model: AI_CONFIG.reasoningModel,
     temperature: AI_CONFIG.temperature.caseGeneration,
     maxTokens: AI_CONFIG.maxTokens.caseGeneration,
     responseFormat: 'json',

@@ -1,0 +1,40 @@
+# Render 部署蓝图
+#
+# 架构：Web Service（Node.js）+ Vite SPA 构建产物
+#   - Express 后端持有 OpenRouter API Key
+#   - Express 同时托管 dist/ 静态资源
+#   - 玩家浏览器只通过 /api/* 访问 AI，API Key 不会下发到前端
+#
+# 部署步骤：
+#   1. 在 Render Dashboard 新建 Blueprint，连接本仓库
+#   2. Render 会自动读取此文件创建服务
+#   3. 手动在 Environment 里添加 OPENROUTER_API_KEY（已标 sync:false）
+
+services:
+  - type: web
+    name: lex-machina
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    autoDeploy: true
+
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+
+    envVars:
+      # AI Key（必填，敏感）
+      # 在 Render Dashboard → Environment 手动设置
+      - key: OPENROUTER_API_KEY
+        sync: false
+
+      # 运行环境
+      - key: NODE_ENV
+        value: production
+
+      # 公开 URL（可选，用于 OpenRouter 统计 Referer）
+      # Render 会自动注入 RENDER_EXTERNAL_URL，可手动同步
+      - key: PUBLIC_URL
+        sync: false
+
+    healthCheckPath: /api/health

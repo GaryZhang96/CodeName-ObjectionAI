@@ -4,36 +4,45 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently -k -n server,vite -c \"#22c55e,#646cff\" \"npm:dev:server\" \"npm:dev:vite\"",
+    "dev:vite": "vite",
+    "dev:server": "tsx watch server/index.ts",
     "build": "tsc -b && vite build",
+    "start": "cross-env NODE_ENV=production tsx server/index.ts",
+    "preview:server": "cross-env NODE_ENV=production tsx server/index.ts",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "clsx": "^2.1.1",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
+    "framer-motion": "^11.11.17",
+    "lucide-react": "^0.460.0",
+    "openai": "^4.73.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "lucide-react": "^0.460.0",
-    "framer-motion": "^11.11.17",
-    "clsx": "^2.1.1",
     "tailwind-merge": "^2.5.5",
-    "openai": "^4.73.0",
     "zustand": "^5.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
+    "@types/express": "^4.17.25",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.2.1",
+    "cross-env": "^7.0.3",
     "eslint": "^9.13.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.14",
     "globals": "^15.11.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
+    "tsx": "^4.22.3",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.11.0",
     "vite": "^5.4.10"
   }
 }
-
