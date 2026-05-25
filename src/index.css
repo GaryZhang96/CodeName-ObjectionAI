@@ -2,429 +2,346 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ============================================
-   Lex Machina - 像素风主题样式
-   ============================================ */
+/* ============================================================
+   Lex Machina —— 像素逆转裁判风全局样式
+   ============================================================
+   设计原则：
+   1. 像素感不靠廉价 CSS，而靠硬边框 + 偏移投影 + 限制调色板
+   2. 文本默认禁用抗锯齿 (让字体更"像素感")，但 body 字体保留以保证可读
+   3. 所有交互元素 ≥ 44px，保证移动端可点
+   ============================================================ */
 
-/* 基础重置与全局样式 */
+/* ===== 1. CSS Reset + 全局基线 ===== */
 * {
+  /* 像素元素禁用平滑插值；文字另行处理 */
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
 
 html {
   font-size: 16px;
+  scroll-behavior: smooth;
+  /* 防止 iOS Safari 自动放大 */
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  @apply bg-pixel-black text-pixel-light font-pixel-body;
+  @apply bg-surface-base text-ink-primary font-pixel-body;
+  /* 字体抗锯齿 - body 需要可读性，所以打开 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   overflow-y: auto;
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Crect fill='%23ffd700' x='0' y='0' width='4' height='4'/%3E%3Crect fill='%23ffd700' x='4' y='4' width='4' height='4'/%3E%3Crect fill='%23ffd700' x='8' y='8' width='4' height='4'/%3E%3Crect fill='%23ffd700' x='0' y='4' width='4' height='12'/%3E%3C/svg%3E"), auto;
+  -webkit-tap-highlight-color: transparent;
+  /* 像素风全局背景：深紫底 + 细网格 + 微噪点 */
+  background-image:
+    linear-gradient(rgba(255, 182, 39, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 182, 39, 0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
-/* 像素风滚动条 */
+/* 标题字体 - 强制不抗锯齿，保留像素硬朗感 */
+h1, h2, h3, h4, h5, h6,
+.font-pixel-title,
+[class*="pixel-title"] {
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: auto;
+  font-smooth: never;
+}
+
+/* 选中文字 */
+::selection {
+  @apply bg-brand-gold text-brand-ink;
+}
+
+/* ===== 2. 像素滚动条 ===== */
 ::-webkit-scrollbar {
   width: 12px;
   height: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-pixel-dark;
-  border: 2px solid #333;
+  @apply bg-surface-sunken;
+  border-left: 2px solid var(--scrollbar-line, #3a2e5e);
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-pixel-gold;
-  border: 2px solid #333;
+  @apply bg-brand-gold;
+  border: 2px solid #0e0820;
+  border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-amber-glow;
+  @apply bg-brand-gold-deep;
 }
 
-/* ============================================
-   像素风组件基础类
-   ============================================ */
+::-webkit-scrollbar-corner {
+  @apply bg-surface-sunken;
+}
 
+/* ===== 3. 像素组件类 ===== */
 @layer components {
-  /* 卡通风格按钮 */
+  /* ---------- 按钮 ---------- */
+  /* 像素按钮：硬边框 + 偏移投影 + 按下时投影消失（仿真）  */
   .pixel-btn {
-    @apply px-6 py-3 font-pixel-body text-sm uppercase tracking-wider
-           bg-court-accent text-white
-           border-2 border-pixel-dark/20
-           rounded-cartoon
-           shadow-soft
-           transition-all duration-200
-           hover:translate-y-[-2px]
-           hover:shadow-soft-lg
-           active:translate-y-[1px]
-           active:shadow-soft
+    @apply inline-flex items-center justify-center gap-2
+           px-5 py-3 min-h-[44px]
+           font-pixel-title text-xs uppercase tracking-wider
+           bg-brand-gold text-brand-ink
+           border-[3px] border-brand-ink
+           shadow-pixel
+           transition-[transform,box-shadow] duration-100
+           hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-pixel-lg
+           active:translate-x-[2px] active:translate-y-[2px] active:shadow-pixel-sm
            disabled:opacity-50 disabled:cursor-not-allowed
-           disabled:hover:translate-y-0
-           disabled:hover:shadow-soft;
+           disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-pixel;
   }
-
   .pixel-btn-danger {
-    @apply pixel-btn bg-pixel-red text-white;
+    @apply pixel-btn bg-game-red text-ink-primary border-game-red-deep shadow-pixel-red;
   }
-
   .pixel-btn-success {
-    @apply pixel-btn bg-pixel-green text-white;
+    @apply pixel-btn bg-game-green text-ink-primary border-game-green-deep shadow-pixel-green;
+  }
+  .pixel-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2
+           px-5 py-3 min-h-[44px]
+           font-pixel-title text-xs uppercase tracking-wider
+           bg-transparent text-brand-gold
+           border-[3px] border-brand-gold
+           transition-[background,color,transform] duration-100
+           hover:bg-brand-gold hover:text-brand-ink
+           active:translate-x-[1px] active:translate-y-[1px]
+           disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
-  /* 卡通风格面板/卡片 */
+  /* ---------- 面板/卡片 ---------- */
   .pixel-panel {
-    @apply bg-court-secondary border-2 border-court-accent/20
-           rounded-cartoon shadow-soft-lg p-4;
+    @apply relative bg-surface-raised border-[3px] border-ink-line shadow-pixel p-5;
+  }
+  .pixel-panel-highlight {
+    @apply pixel-panel border-brand-gold shadow-pixel-gold;
+  }
+  .pixel-panel-danger {
+    @apply pixel-panel border-game-red shadow-pixel-red;
+  }
+  /* 卷宗风 - 用于案件相关 */
+  .pixel-folder {
+    @apply pixel-panel bg-surface-inverse text-ink-on-light border-brand-gold-deep;
   }
 
-  .pixel-panel-dark {
-    @apply bg-white border-2 border-pixel-gray/20
-           rounded-cartoon shadow-soft p-4;
-  }
-
-  /* 卡通风格输入框 */
+  /* ---------- 输入框 ---------- */
   .pixel-input {
-    @apply w-full px-4 py-3 font-pixel-body text-base
-           bg-white text-pixel-light
-           border-2 border-pixel-gray/30
-           rounded-cartoon
-           focus:border-court-accent focus:outline-none focus:ring-2 focus:ring-court-accent/20
-           placeholder:text-pixel-gray/50;
+    @apply w-full px-4 py-3 min-h-[44px]
+           font-pixel-body text-base
+           bg-surface-sunken text-ink-primary
+           border-[3px] border-ink-line
+           shadow-pixel-inset
+           transition-colors duration-100
+           focus:outline-none focus:border-brand-gold
+           placeholder:text-ink-muted;
+    /* iOS Safari 防止自动缩放 */
+    font-size: 16px;
+  }
+  .pixel-textarea {
+    @apply pixel-input resize-none;
   }
 
-  /* 卡通风格标题 */
+  /* ---------- 徽章 / 标签 ---------- */
+  .pixel-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5
+           font-pixel-title text-[10px] uppercase tracking-wider
+           bg-surface-overlay text-ink-primary
+           border-2 border-ink-line;
+  }
+  .pixel-badge-gold {
+    @apply pixel-badge bg-brand-gold text-brand-ink border-brand-gold-deep;
+  }
+  .pixel-badge-red {
+    @apply pixel-badge bg-game-red text-ink-primary border-game-red-deep;
+  }
+  .pixel-badge-green {
+    @apply pixel-badge bg-game-green text-ink-primary border-game-green-deep;
+  }
+  .pixel-badge-blue {
+    @apply pixel-badge bg-game-blue text-ink-primary border-game-blue-deep;
+  }
+  .pixel-badge-purple {
+    @apply pixel-badge bg-game-purple text-ink-primary border-game-purple-deep;
+  }
+
+  /* ---------- 进度/血条 ---------- */
+  .pixel-bar-track {
+    @apply relative h-3 bg-surface-sunken border-2 border-ink-line overflow-hidden;
+  }
+  .pixel-bar-fill {
+    @apply h-full transition-[width] duration-300 ease-out;
+  }
+
+  /* ---------- 对话气泡 ---------- */
+  .pixel-dialog {
+    @apply relative px-4 py-3
+           bg-surface-raised text-ink-primary
+           border-[3px] border-ink-line shadow-pixel;
+  }
+  .pixel-dialog-player {
+    @apply pixel-dialog bg-game-blue/15 border-game-blue;
+  }
+  .pixel-dialog-witness {
+    @apply pixel-dialog bg-surface-raised border-ink-line;
+  }
+  .pixel-dialog-prosecutor {
+    @apply pixel-dialog bg-game-red/15 border-game-red;
+  }
+  .pixel-dialog-judge {
+    @apply pixel-dialog bg-brand-gold/15 border-brand-gold;
+  }
+  .pixel-dialog-system {
+    @apply pixel-dialog bg-surface-overlay/60 border-ink-tertiary text-ink-secondary italic text-center;
+  }
+
+  /* ---------- 标题强调 ---------- */
   .pixel-title {
-    @apply font-pixel-title text-court-accent 
-           tracking-wider;
+    @apply font-pixel-title text-brand-gold tracking-wider;
+    text-shadow:
+      2px 2px 0 rgba(14, 8, 32, 0.9),
+      4px 4px 0 rgba(212, 144, 10, 0.5);
+  }
+  .pixel-title-glow {
+    @apply font-pixel-title text-brand-gold tracking-wider;
+    text-shadow:
+      0 0 4px rgba(255, 217, 128, 0.9),
+      0 0 12px rgba(255, 182, 39, 0.6),
+      0 0 24px rgba(255, 182, 39, 0.4);
   }
 
-  /* 发光文字效果 - 柔和版本 */
-  .glow-text {
-    text-shadow: 
-      0 0 10px rgba(255, 200, 100, 0.3),
-      0 0 20px rgba(255, 200, 100, 0.2);
+  /* ---------- 棋盘格 / 卷宗装饰底 ---------- */
+  .pixel-paper-bg {
+    background-color: #f4ead2;
+    background-image:
+      linear-gradient(rgba(58, 36, 0, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(58, 36, 0, 0.04) 1px, transparent 1px);
+    background-size: 16px 16px;
+  }
+  .pixel-court-bg {
+    background-color: #1a1330;
+    background-image:
+      radial-gradient(
+        ellipse at center top,
+        rgba(165, 94, 234, 0.18) 0%,
+        transparent 60%
+      ),
+      linear-gradient(rgba(255, 182, 39, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 182, 39, 0.025) 1px, transparent 1px);
+    background-size:
+      100% 100%,
+      32px 32px,
+      32px 32px;
+  }
+}
+
+/* ===== 4. 全局工具类 ===== */
+@layer utilities {
+  /* ---- 像素描边文字（外发光） ---- */
+  .text-stroke-dark {
+    -webkit-text-stroke: 1px rgba(14, 8, 32, 0.8);
+    paint-order: stroke fill;
+  }
+  .text-stroke-gold {
+    -webkit-text-stroke: 1px rgba(212, 144, 10, 0.9);
+    paint-order: stroke fill;
   }
 
-  /* 打字机效果容器 */
-  .typewriter {
-    overflow: hidden;
-    white-space: nowrap;
-    border-right: 3px solid;
-    animation: 
-      typing 3s steps(40, end),
-      blink-caret 0.75s step-end infinite;
-  }
-
-  @keyframes blink-caret {
-    from, to { border-color: transparent; }
-    50% { border-color: currentColor; }
-  }
-
-  /* 角色立绘容器 */
-  .character-portrait {
-    @apply relative overflow-hidden;
-    image-rendering: pixelated;
-  }
-
-  .character-portrait img {
-    @apply w-full h-full object-contain;
-    image-rendering: pixelated;
-  }
-
-  /* 对话框气泡 - 卡通风格 */
-  .speech-bubble {
-    @apply relative bg-white border-2 border-pixel-gray/20 rounded-cartoon shadow-soft p-4;
-  }
-
-  .speech-bubble::after {
+  /* ---- 扫描线遮罩（CRT 复古） ---- */
+  .scanlines::before {
     content: '';
-    @apply absolute w-0 h-0;
-    border-left: 12px solid transparent;
-    border-right: 12px solid transparent;
-    border-top: 12px solid white;
-    bottom: -10px;
-    left: 20px;
-    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+    @apply pointer-events-none fixed inset-0 z-[100] opacity-[0.06];
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 2px,
+      rgba(255, 255, 255, 0.5) 2px,
+      rgba(255, 255, 255, 0.5) 3px
+    );
   }
 
-  /* 陪审团成员格子 - 卡通风格 */
-  .jury-cell {
-    @apply w-10 h-10 flex items-center justify-center
-           border-2 border-pixel-gray/20 bg-white rounded-lg
-           text-2xl transition-all duration-300 shadow-soft;
-  }
-
-  .jury-cell.positive {
-    @apply border-pixel-green/50 bg-pixel-green/10;
-  }
-
-  .jury-cell.negative {
-    @apply border-pixel-red/50 bg-pixel-red/10;
-  }
-
-  /* 证据卡片 - 卡通风格 */
-  .evidence-card {
-    @apply bg-white border-2 border-pixel-gray/20 rounded-cartoon shadow-soft cursor-pointer
-           hover:border-court-accent hover:shadow-soft-lg
-           transition-all duration-200;
-  }
-
-  .evidence-card.selected {
-    @apply border-court-accent bg-court-accent/5 shadow-soft-lg;
-  }
-
-  /* 情绪指示器 - 卡通风格 */
-  .emotion-indicator {
-    @apply inline-block px-3 py-1 text-xs font-pixel-body
-           border-2 rounded-full;
-  }
-
-  .emotion-indicator.calm {
-    @apply border-pixel-blue/50 bg-pixel-blue/10 text-pixel-blue;
-  }
-
-  .emotion-indicator.nervous {
-    @apply border-yellow-500/50 bg-yellow-500/10 text-yellow-600;
-  }
-
-  .emotion-indicator.angry {
-    @apply border-pixel-red/50 bg-pixel-red/10 text-pixel-red;
-  }
-
-  .emotion-indicator.broken {
-    @apply border-purple-500/50 bg-purple-500/10 text-purple-600 animate-pulse;
-  }
-}
-
-/* ============================================
-   动画效果
-   ============================================ */
-
-@layer utilities {
-  /* 异议！震动效果 */
-  .objection-shake {
-    animation: objection-shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-  }
-
-  @keyframes objection-shake {
-    10%, 90% { transform: translate3d(-2px, 0, 0); }
-    20%, 80% { transform: translate3d(4px, 0, 0); }
-    30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
-    40%, 60% { transform: translate3d(8px, 0, 0); }
-  }
-
-  /* 渐入动画 */
-  .fade-in {
-    animation: fadeIn 0.5s ease-in-out;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  /* 从下方滑入 */
-  .slide-up {
-    animation: slideUp 0.3s ease-out;
-  }
-
-  @keyframes slideUp {
-    from { 
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to { 
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* 闪烁警告 */
-  .warning-flash {
-    animation: warningFlash 0.5s ease-in-out infinite;
-  }
-
-  @keyframes warningFlash {
-    0%, 100% { 
-      background-color: transparent; 
-    }
-    50% { 
-      background-color: rgba(255, 68, 68, 0.3); 
-    }
-  }
-
-  /* 金色脉冲 */
-  .gold-pulse {
-    animation: goldPulse 2s ease-in-out infinite;
-  }
-
-  @keyframes goldPulse {
-    0%, 100% {
-      box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
-    }
-    50% {
-      box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
-    }
-  }
-}
-
-/* ============================================
-   响应式调整 - 移动端适配
-   ============================================ */
-
-/* 移动端基础调整 */
-@media (max-width: 768px) {
-  html {
-    font-size: 14px;
-  }
-
-  body {
-    overflow-x: hidden;
-    overflow-y: auto;
-    cursor: auto; /* 移动端使用默认光标 */
-    -webkit-tap-highlight-color: transparent; /* 移除触摸高亮 */
-    touch-action: manipulation; /* 禁用双击缩放 */
-  }
-
-  .pixel-btn {
-    @apply px-4 py-3 text-xs min-h-[44px] rounded-lg; /* 确保触摸目标足够大,使用圆角 */
-  }
-
-  .pixel-title {
-    @apply text-sm;
-  }
-
-  .pixel-panel {
-    @apply p-3 border rounded-cartoon;
-  }
-
-  .pixel-input {
-    @apply px-3 py-2 text-base border rounded-cartoon; /* 16px+ 防止iOS缩放,使用圆角 */
-    font-size: 16px !important; /* 防止Safari自动缩放 */
-  }
-
-  /* 陪审团格子缩小 */
-  .jury-cell {
-    @apply w-8 h-8 text-lg border rounded-lg;
-  }
-
-  /* 证据卡片移动端 */
-  .evidence-card {
-    @apply border rounded-cartoon;
-  }
-
-  /* 隐藏PC端滚动条样式 */
-  ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
-  }
-
-  /* 扫描线效果在移动端减弱 */
-  .scanline-overlay {
-    opacity: 0.3;
-  }
-}
-
-/* 小屏手机额外优化 */
-@media (max-width: 480px) {
-  html {
-    font-size: 13px;
-  }
-
-  .pixel-btn {
-    @apply px-3 py-2 text-[10px];
-  }
-
-  .jury-cell {
-    @apply w-6 h-6 text-sm;
-  }
-}
-
-/* 横屏手机适配 */
-@media (max-height: 500px) and (orientation: landscape) {
-  body {
-    overflow-y: auto;
-  }
-}
-
-/* 触摸设备优化 */
-@media (hover: none) and (pointer: coarse) {
-  /* 禁用hover效果，使用active */
-  .pixel-btn {
-    @apply hover:translate-x-0 hover:translate-y-0 hover:shadow-pixel;
-  }
-
-  .pixel-btn:active {
-    @apply translate-x-[2px] translate-y-[2px] shadow-none;
-  }
-
-  .evidence-card {
-    @apply hover:scale-100;
-  }
-
-  .evidence-card:active {
-    @apply scale-95;
-  }
-
-  /* 增大可点击区域 */
-  button, a, [role="button"] {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
-  /* 更友好的滚动 */
-  .custom-scrollbar {
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-  }
-}
-
-/* 安全区域适配 (iPhone X+) */
-@supports (padding: max(0px)) {
-  .safe-area-top {
-    padding-top: max(env(safe-area-inset-top), 16px);
-  }
-
-  .safe-area-bottom {
-    padding-bottom: max(env(safe-area-inset-bottom), 16px);
-  }
-
-  .safe-area-inset {
-    padding-left: max(env(safe-area-inset-left), 16px);
-    padding-right: max(env(safe-area-inset-right), 16px);
-  }
-}
-
-/* 移动端专用工具类 */
-@layer utilities {
-  .mobile-fullscreen {
-    @apply min-h-screen min-h-[100dvh]; /* 动态视口高度 */
-  }
-
-  .mobile-safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 16px);
-  }
-
+  /* ---- 触摸友好滚动 ---- */
   .touch-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 
+  /* ---- iOS 安全区 ---- */
+  .safe-top {
+    padding-top: max(env(safe-area-inset-top), 8px);
+  }
+  .safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 8px);
+  }
+  .safe-x {
+    padding-left: max(env(safe-area-inset-left), 8px);
+    padding-right: max(env(safe-area-inset-right), 8px);
+  }
+
+  /* ---- 移动端视口高度（避免地址栏遮挡） ---- */
+  .min-h-dvh {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  .h-dvh {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* ---- 无选择 ---- */
   .no-select {
     -webkit-user-select: none;
     user-select: none;
   }
 
-  /* 隐藏移动端元素 */
-  .hide-mobile {
-    @apply hidden md:block;
-  }
-
-  /* 仅移动端显示 */
-  .show-mobile {
-    @apply block md:hidden;
+  /* ---- "异议！"震屏（用在父级容器上） ---- */
+  .shake-screen {
+    animation: pixel-shake-strong 0.6s cubic-bezier(.36,.07,.19,.97) both;
   }
 }
 
+/* ============================================================
+   响应式 - 仅做必要调整，单一组件库自动响应
+   ============================================================ */
+
+@media (max-width: 480px) {
+  html {
+    font-size: 15px;
+  }
+  /* 移动端隐藏扫描线（性能 + 视觉简洁） */
+  .scanlines::before {
+    display: none;
+  }
+}
+
+/* 触摸设备 - 禁用 hover 动画，改用 active 反馈 */
+@media (hover: none) and (pointer: coarse) {
+  .pixel-btn:hover,
+  .pixel-btn-ghost:hover {
+    transform: none;
+    box-shadow: 4px 4px 0 0 rgba(14, 8, 32, 0.7);
+  }
+  .pixel-btn:active,
+  .pixel-btn-ghost:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 0 rgba(14, 8, 32, 0.7);
+  }
+}
+
+/* 减少动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

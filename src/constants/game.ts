@@ -59,14 +59,14 @@ export const CASE_TYPE_NAMES: Record<string, string> = {
 };
 
 /** 证人情绪名称映射 */
-export const WITNESS_EMOTION_NAMES: Record<string, { text: string; color: string }> = {
-  calm: { text: '平静', color: 'text-pixel-blue' },
-  confident: { text: '自信', color: 'text-pixel-green' },
-  nervous: { text: '紧张', color: 'text-yellow-400' },
-  defensive: { text: '防御', color: 'text-orange-400' },
-  angry: { text: '愤怒', color: 'text-pixel-red' },
-  scared: { text: '恐惧', color: 'text-purple-400' },
-  broken: { text: '崩溃', color: 'text-pixel-red animate-pulse' },
+export const WITNESS_EMOTION_NAMES: Record<string, { text: string; color: string; emoji: string }> = {
+  calm: { text: '平静', color: 'text-game-blue', emoji: '😐' },
+  confident: { text: '自信', color: 'text-game-green', emoji: '😎' },
+  nervous: { text: '紧张', color: 'text-game-yellow', emoji: '😰' },
+  defensive: { text: '防御', color: 'text-game-yellow', emoji: '😤' },
+  angry: { text: '愤怒', color: 'text-game-red', emoji: '😠' },
+  scared: { text: '恐惧', color: 'text-game-purple', emoji: '😨' },
+  broken: { text: '崩溃', color: 'text-game-red animate-pixel-pulse', emoji: '😱' },
 };
 
 /** 线索等级名称映射 */
@@ -85,12 +85,12 @@ export const CLUE_LEVEL_SHORT_NAMES: Record<string, string> = {
 
 /** 判决评级颜色映射 */
 export const RATING_COLORS: Record<string, string> = {
-  S: 'text-yellow-400',
-  A: 'text-pixel-green',
-  B: 'text-blue-400',
-  C: 'text-pixel-light',
-  D: 'text-orange-400',
-  F: 'text-pixel-red',
+  S: 'text-brand-gold',
+  A: 'text-game-green',
+  B: 'text-game-blue',
+  C: 'text-ink-primary',
+  D: 'text-game-yellow',
+  F: 'text-game-red',
 };
 
 // ============================================
@@ -114,7 +114,7 @@ export function getCaseTypeName(type: string): string {
 /**
  * 获取证人情绪显示信息
  */
-export function getEmotionDisplay(emotion: string): { text: string; color: string } {
+export function getEmotionDisplay(emotion: string): { text: string; color: string; emoji: string } {
   return WITNESS_EMOTION_NAMES[emotion] || WITNESS_EMOTION_NAMES.calm;
 }
 
@@ -136,6 +136,6 @@ export function getClueLevelShortName(level: string): string {
  * 获取评级颜色
  */
 export function getRatingColor(rating: string): string {
-  return RATING_COLORS[rating] || 'text-pixel-light';
+  return RATING_COLORS[rating] || 'text-ink-primary';
 }
 

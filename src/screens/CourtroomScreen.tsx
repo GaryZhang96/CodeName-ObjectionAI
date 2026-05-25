@@ -1,22 +1,47 @@
 /**
- * 庭审阶段界面 - 核心玩法
+ * 庭审界面 - 像素逆转裁判风（统一 PC + 移动端）
+ *
+ * 核心设计：
+ * 1. 顶部：法官席（耐心条 + 当前阶段）
+ * 2. 主区域（PC 左右双栏 / 移动单栏）：
+ *    - 角色舞台：左检察官、右辩护律师 + 当前证人（中央）
+ *    - 对话流（占主要空间）
+ * 3. 底部：输入栏 + 异议/证据/证人/求助快捷按钮
+ * 4. 右侧栏（PC 端）：陪审团 + 证据卷宗
+ *
+ * 关键反馈：
+ * - 「异议！」全屏冲击 + 屏幕震动
+ * - 飘字反馈陪审团情绪变化
+ * - 关键时刻消息有金色边 + 微光
  */
 
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  HelpCircle, 
+import {
+  HelpCircle,
   Send,
-  User,
   Users,
   Gavel,
+  Scale,
+  AlertTriangle,
+  Flag,
+  Shield,
+  Sword,
+  FileText,
+  X,
+  Sparkles,
 } from 'lucide-react';
-import { Button, Panel, TextArea, Modal } from '@/components/ui';
-import { StatusBar, JuryPanel } from '@/components/game';
-import { MobileCourtroomView } from '@/components/game/MobileCourtroomView';
+import { Button, TextArea, Modal, Panel } from '@/components/ui';
+import {
+  JuryPanel,
+  EvidencePanel,
+  ObjectionEffect,
+  FloatingTextLayer,
+  useFloatingTexts,
+} from '@/components/game';
 import { useGameStore } from '@/store/gameStore';
-import { 
-  processPlayerStatement, 
+import {
+  processPlayerStatement,
   generateProsecutorStatement,
   generateJudgeStatement,
   generateVerdict,
@@ -24,8 +49,14 @@ import {
   getPartnerHint,
 } from '@/services/ai/courtSimulator';
 import { cn } from '@/lib/utils';
-import { getEmotionDisplay, getProsecutorStyleName, GAME_CONSTANTS } from '@/constants/game';
-import type { CourtroomMessage, Witness } from '@/types';
+import {
+  getEmotionDisplay,
+  getProsecutorStyleName,
+  GAME_CONSTANTS,
+} from '@/constants/game';
+import type { CourtroomMessage, Witness, Evidence } from '@/types';
+
+type ObjectionKind = 'objection' | 'hold-it' | 'take-that' | 'breakthrough';
 
 export function CourtroomScreen() {
   const {
@@ -38,7 +69,7 @@ export function CourtroomScreen() {
     updateJurySentiment,
     updateJudgePatience,
     breakLogicalLock,
-    useHint,
+    useHint: spendHint,
     setCourtroomPhase,
     setVerdict,
     setPhase,
@@ -47,80 +78,130 @@ export function CourtroomScreen() {
   const [playerInput, setPlayerInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showWitnessSelect, setShowWitnessSelect] = useState(false);
+  const [showEvidenceModal, setShowEvidenceModal] = useState(false);
   const [showHintModal, setShowHintModal] = useState(false);
+  const [showSidePanel, setShowSidePanel] = useState(false); // 移动端右侧抽屉
   const [currentHint, setCurrentHint] = useState('');
-  const [showObjectionEffect, setShowObjectionEffect] = useState(false);
-  
+  const [objectionEffect, setObjectionEffect] = useState<{
+    visible: boolean;
+    kind: ObjectionKind;
+  }>({ visible: false, kind: 'objection' });
+  const [shakeScreen, setShakeScreen] = useState(false);
+  const { items: floatingItems, push: pushFloating, remove: removeFloating } =
+    useFloatingTexts();
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
-
-  // 移动端工具面板状态已移至 MobileCourtroomView
+  const objectionTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   // 清理定时器
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (objectionTimerRef.current) clearTimeout(objectionTimerRef.current);
     };
   }, []);
 
   // 自动滚动到最新消息
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [courtroom?.messages]);
+  }, [courtroom?.messages.length]);
 
-  // 使用 useMemo 缓存计算结果
   const { currentWitness, unbrokenLocks, brokenLocks } = useMemo(() => {
     if (!currentCase || !courtroom) {
-      return { currentWitness: undefined, unbrokenLocks: [], brokenLocks: [] };
+      return {
+        currentWitness: undefined,
+        unbrokenLocks: [],
+        brokenLocks: [],
+      };
     }
     return {
-      currentWitness: currentCase.witnesses.find(w => w.id === courtroom.currentWitnessId),
-      unbrokenLocks: currentCase.logicalLocks.filter(l => !l.isBroken),
-      brokenLocks: currentCase.logicalLocks.filter(l => l.isBroken),
+      currentWitness: currentCase.witnesses.find(
+        (w) => w.id === courtroom.currentWitnessId
+      ),
+      unbrokenLocks: currentCase.logicalLocks.filter((l) => !l.isBroken),
+      brokenLocks: currentCase.logicalLocks.filter((l) => l.isBroken),
     };
-  }, [currentCase, courtroom?.currentWitnessId]);
+  }, [currentCase, courtroom]);
 
-  // 开庭流程 - 使用 useCallback 确保稳定引用
+  // 触发异议效果
+  const triggerObjection = useCallback(
+    (kind: ObjectionKind) => {
+      setObjectionEffect({ visible: true, kind });
+      setShakeScreen(true);
+      if (objectionTimerRef.current) clearTimeout(objectionTimerRef.current);
+      objectionTimerRef.current = setTimeout(() => {
+        setObjectionEffect({ visible: false, kind });
+        setShakeScreen(false);
+      }, 1200);
+    },
+    []
+  );
+
+  // 开庭流程
   const startTrial = useCallback(async () => {
     if (!currentCase || !courtroom) return;
-    // 法官开庭
-    const judgeOpening = await generateJudgeStatement('opening');
-    addMessage(createCourtroomMessage(
-      'judge',
-      courtroom.judge.name,
-      judgeOpening,
-      { isKeyMoment: true }
-    ));
 
-    // 检察官开庭陈述
-    timerRef.current = setTimeout(async () => {
-      if (!currentCase) return;
-      const { response, juryImpact } = await generateProsecutorStatement(
-        currentCase,
-        courtroom.messages,
-        'opening'
+    try {
+      const judgeOpening = await generateJudgeStatement('opening');
+      addMessage(
+        createCourtroomMessage(
+          'judge',
+          courtroom.judge.name,
+          judgeOpening,
+          { isKeyMoment: true }
+        )
       );
-      addMessage(createCourtroomMessage(
-        'prosecutor',
-        currentCase.prosecutor.name,
-        response,
-        { juryImpact }
-      ));
-      updateJurySentiment(juryImpact);
 
-      // 系统提示
-      addMessage(createCourtroomMessage(
-        'system',
-        '系统',
-        '现在轮到辩护律师(你)进行询问。你可以传唤证人并提出问题。',
-      ));
-    }, 2000);
+      timerRef.current = setTimeout(async () => {
+        if (!currentCase) return;
+        try {
+          const { response, juryImpact } = await generateProsecutorStatement(
+            currentCase,
+            courtroom.messages,
+            'opening'
+          );
+          addMessage(
+            createCourtroomMessage(
+              'prosecutor',
+              currentCase.prosecutor.name,
+              response,
+              { juryImpact }
+            )
+          );
+          updateJurySentiment(juryImpact);
+
+          addMessage(
+            createCourtroomMessage(
+              'system',
+              '系统',
+              '现在轮到辩护律师(你)进行询问。你可以传唤证人并提出问题。'
+            )
+          );
+        } catch (e) {
+          console.error(e);
+          addMessage(
+            createCourtroomMessage(
+              'system',
+              '系统',
+              `检察官开庭失败: ${(e as Error).message}`
+            )
+          );
+        }
+      }, 1800);
+    } catch (e) {
+      console.error(e);
+      addMessage(
+        createCourtroomMessage(
+          'system',
+          '系统',
+          `法官开庭失败: ${(e as Error).message}`
+        )
+      );
+    }
   }, [currentCase, courtroom, addMessage, updateJurySentiment]);
 
-  // 开庭
   useEffect(() => {
     if (courtroom && courtroom.messages.length === 0) {
       startTrial();
@@ -129,32 +210,45 @@ export function CourtroomScreen() {
 
   if (!currentCase || !courtroom) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-court-primary">
-        <Panel>
-          <p className="text-pixel-light mb-4">案件数据丢失</p>
-          <Button onClick={() => setPhase('office')}>返回事务所</Button>
+      <div className="min-h-dvh flex items-center justify-center pixel-court-bg p-4">
+        <Panel variant="default" className="max-w-md text-center">
+          <p className="font-pixel-body text-base text-ink-primary mb-4">
+            案件数据丢失
+          </p>
+          <Button onClick={() => setPhase('office')} fullWidth>
+            返回事务所
+          </Button>
         </Panel>
       </div>
     );
   }
 
-  // 处理玩家发言
-  const handleSubmit = async () => {
-    if (!playerInput.trim() || isProcessing) return;
+  // 飘字反馈：根据陪审团 impact 弹出
+  const pushImpactFeedback = (impact: number) => {
+    if (impact === 0) return;
+    pushFloating({
+      text: impact > 0 ? `+${impact} 陪审团好感` : `${impact} 陪审团好感`,
+      kind: impact > 0 ? 'positive' : 'negative',
+      x: 50 + (Math.random() - 0.5) * 30,
+      y: 40 + (Math.random() - 0.5) * 10,
+    });
+  };
 
-    const input = playerInput.trim();
-    setPlayerInput('');
+  // 玩家发言（含 prefix 模式：异议、出示证据）
+  const sendPlayerStatement = async (
+    input: string,
+    options?: { objectionKind?: ObjectionKind; evidenceUsed?: Evidence }
+  ) => {
+    if (!input.trim() || isProcessing) return;
     setIsProcessing(true);
 
-    // 添加玩家消息
-    addMessage(createCourtroomMessage(
-      'player',
-      player.name,
-      input,
-    ));
+    if (options?.objectionKind) {
+      triggerObjection(options.objectionKind);
+    }
+
+    addMessage(createCourtroomMessage('player', player.name, input));
 
     try {
-      // 调用 AI 处理
       const response = await processPlayerStatement(
         currentCase,
         courtroom.currentWitnessId,
@@ -163,116 +257,145 @@ export function CourtroomScreen() {
         courtroom.judge.patience
       );
 
-      // 处理回应
-      const speakerName = response.speaker === 'witness' 
-        ? currentWitness?.name || '证人'
-        : response.speaker === 'prosecutor'
-          ? currentCase.prosecutor.name
-          : courtroom.judge.name;
+      const speakerName =
+        response.speaker === 'witness'
+          ? currentWitness?.name || '证人'
+          : response.speaker === 'prosecutor'
+            ? currentCase.prosecutor.name
+            : courtroom.judge.name;
 
-      addMessage(createCourtroomMessage(
-        response.speaker,
-        speakerName,
-        response.response,
-        {
-          emotion: response.emotionChange,
-          juryImpact: response.juryImpact,
-          isKeyMoment: !!response.lockBroken || response.witnessBroken,
-        }
-      ));
+      addMessage(
+        createCourtroomMessage(
+          response.speaker,
+          speakerName,
+          response.response,
+          {
+            emotion: response.emotionChange,
+            juryImpact: response.juryImpact,
+            isKeyMoment: !!response.lockBroken || response.witnessBroken,
+          }
+        )
+      );
 
-      // 更新状态
       updateJurySentiment(response.juryImpact);
       updateJudgePatience(response.judgePatience);
+      pushImpactFeedback(response.juryImpact);
 
-      // 处理情绪变化
       if (response.emotionChange && courtroom.currentWitnessId) {
         updateWitnessEmotion(courtroom.currentWitnessId, response.emotionChange);
       }
 
-      // 处理逻辑锁破解
       if (response.lockBroken) {
         breakLogicalLock(response.lockBroken);
-        addMessage(createCourtroomMessage(
-          'system',
-          '系统',
-          '🔓 你发现了一个关键矛盾！',
-          { isKeyMoment: true, juryImpact: 5 }
-        ));
+        triggerObjection('breakthrough');
+        addMessage(
+          createCourtroomMessage(
+            'system',
+            '系统',
+            '🔓 你发现了一个关键矛盾！',
+            { isKeyMoment: true, juryImpact: 5 }
+          )
+        );
       }
 
-      // 处理证人崩溃
       if (response.witnessBroken) {
-        setShowObjectionEffect(true);
-        setTimeout(() => setShowObjectionEffect(false), 1000);
-        
-        addMessage(createCourtroomMessage(
-          'system',
-          '系统',
-          '💥 证人崩溃了！真相开始浮出水面...',
-          { isKeyMoment: true, juryImpact: 10 }
-        ));
+        triggerObjection('breakthrough');
+        addMessage(
+          createCourtroomMessage(
+            'system',
+            '系统',
+            '💥 证人崩溃了！真相开始浮出水面...',
+            { isKeyMoment: true, juryImpact: 10 }
+          )
+        );
       }
 
-      // 系统提示
       if (response.systemHint) {
-        addMessage(createCourtroomMessage(
-          'system',
-          '系统',
-          response.systemHint,
-        ));
+        addMessage(
+          createCourtroomMessage('system', '系统', response.systemHint)
+        );
       }
 
-      // 检查是否应该提示结案
       if (brokenLocks.length >= currentCase.logicalLocks.length / 2) {
-        addMessage(createCourtroomMessage(
-          'system',
-          '提示',
-          '你已经揭露了多个矛盾，可以考虑申请结案陈词了。',
-        ));
+        addMessage(
+          createCourtroomMessage(
+            'system',
+            '提示',
+            '你已经揭露了多个矛盾，可以考虑申请结案陈词了。'
+          )
+        );
       }
-
     } catch (error) {
       console.error('处理发言失败:', error);
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      addMessage(createCourtroomMessage(
-        'system',
-        '系统',
-        `处理发言时出错: ${errorMessage}`,
-      ));
+      const errorMessage =
+        error instanceof Error ? error.message : '未知错误';
+      addMessage(
+        createCourtroomMessage(
+          'system',
+          '系统',
+          `❌ 处理发言出错: ${errorMessage}`
+        )
+      );
     } finally {
       setIsProcessing(false);
       inputRef.current?.focus();
     }
   };
 
-  // 传唤证人
+  const handleSubmit = () => {
+    const input = playerInput.trim();
+    if (!input) return;
+    setPlayerInput('');
+    sendPlayerStatement(input);
+  };
+
+  const handleObjection = () => {
+    const input = playerInput.trim();
+    if (!input) {
+      pushFloating({
+        text: '需要先输入异议内容',
+        kind: 'negative',
+        x: 50,
+        y: 60,
+      });
+      return;
+    }
+    setPlayerInput('');
+    sendPlayerStatement(`【异议！】${input}`, { objectionKind: 'objection' });
+  };
+
+  const handlePresentEvidence = (evidence: Evidence) => {
+    setShowEvidenceModal(false);
+    sendPlayerStatement(
+      `【出示证据：${evidence.name}】${evidence.description}`,
+      { objectionKind: 'take-that', evidenceUsed: evidence }
+    );
+  };
+
   const handleCallWitness = (witness: Witness) => {
     setCurrentWitness(witness.id);
     setShowWitnessSelect(false);
-    
-    addMessage(createCourtroomMessage(
-      'player',
-      player.name,
-      `我方传唤证人 ${witness.name} 出庭作证。`,
-    ));
 
-    addMessage(createCourtroomMessage(
-      'witness',
-      witness.name,
-      witness.initialTestimony,
-      { emotion: witness.currentEmotion }
-    ));
+    addMessage(
+      createCourtroomMessage(
+        'player',
+        player.name,
+        `我方传唤证人 ${witness.name} 出庭作证。`
+      )
+    );
+
+    addMessage(
+      createCourtroomMessage('witness', witness.name, witness.initialTestimony, {
+        emotion: witness.currentEmotion,
+      })
+    );
   };
 
-  // 请求提示
   const handleRequestHint = async () => {
-    if (!useHint()) {
-      addMessage(createCourtroomMessage(
-        'system',
-        '系统',
-        '余额不足，无法购买提示。',
-      ));
+    if (!spendHint()) {
+      addMessage(
+        createCourtroomMessage('system', '系统', '余额不足，无法购买提示。')
+      );
       return;
     }
 
@@ -281,7 +404,7 @@ export function CourtroomScreen() {
       const hint = await getPartnerHint(
         currentCase,
         courtroom.messages,
-        unbrokenLocks.map(l => l.id)
+        unbrokenLocks.map((l) => l.id)
       );
       setCurrentHint(hint);
       setShowHintModal(true);
@@ -292,346 +415,760 @@ export function CourtroomScreen() {
     }
   };
 
-  // 申请结案
   const handleRequestClosing = async () => {
     setCourtroomPhase('closing');
-    
-    addMessage(createCourtroomMessage(
-      'player',
-      player.name,
-      '法官大人，辩护方申请进行结案陈词。',
-    ));
 
-    // 法官回应
-    const judgeResponse = await generateJudgeStatement('closing');
-    addMessage(createCourtroomMessage(
-      'judge',
-      courtroom.judge.name,
-      judgeResponse,
-    ));
+    addMessage(
+      createCourtroomMessage(
+        'player',
+        player.name,
+        '法官大人，辩护方申请进行结案陈词。'
+      )
+    );
 
-    // 生成判决
-    setIsProcessing(true);
     try {
+      const judgeResponse = await generateJudgeStatement('closing');
+      addMessage(
+        createCourtroomMessage('judge', courtroom.judge.name, judgeResponse)
+      );
+
+      setIsProcessing(true);
       const verdict = await generateVerdict(
         currentCase,
         courtroom.messages,
         courtroom.averageJurySentiment,
-        brokenLocks.map(l => l.id),
+        brokenLocks.map((l) => l.id),
         courtroom.judge.patience
       );
-      
-      timerRef.current = setTimeout(() => {
-        setVerdict(verdict);
-      }, 2000);
+
+      timerRef.current = setTimeout(() => setVerdict(verdict), 2000);
     } catch (error) {
       console.error('生成判决失败:', error);
+      addMessage(
+        createCourtroomMessage(
+          'system',
+          '系统',
+          `生成判决失败: ${(error as Error).message}`
+        )
+      );
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  // 移动端已使用新组件 MobileCourtroomView
-
   return (
-    <div className={cn(
-      "min-h-screen min-h-[100dvh] bg-court-primary",
-      showObjectionEffect && "objection-shake"
-    )}>
-      {/* 移动端使用新的优化布局 */}
-      <div className="md:hidden">
-        <MobileCourtroomView
-          currentCase={currentCase}
-          courtroom={courtroom}
-          player={player}
-          currentWitness={currentWitness}
+    <div
+      className={cn(
+        'min-h-dvh flex flex-col pixel-court-bg relative overflow-hidden',
+        shakeScreen && 'shake-screen'
+      )}
+    >
+      {/* 异议效果 */}
+      <ObjectionEffect
+        isVisible={objectionEffect.visible}
+        kind={objectionEffect.kind}
+      />
+
+      {/* 飘字层 */}
+      <FloatingTextLayer items={floatingItems} onItemExpire={removeFloating} />
+
+      {/* ============== 顶部：法官席 ============== */}
+      <JudgeHeader
+        judgeName={courtroom.judge.name}
+        patience={courtroom.judge.patience}
+        phase={courtroom.phase}
+        onExit={() => {
+          if (window.confirm('确定离开庭审？当前进度将丢失。')) {
+            setPhase('office');
+          }
+        }}
+        onTogglePanel={() => setShowSidePanel((s) => !s)}
+      />
+
+      {/* ============== 主区域：角色 + 对话 + 侧边栏 ============== */}
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 max-w-7xl w-full mx-auto px-3 sm:px-4 pt-3 lg:pt-4 gap-3 lg:gap-4 pb-3 lg:pb-4 safe-x">
+        {/* 中间：对话流 */}
+        <div className="flex-1 flex flex-col min-h-0 min-w-0">
+          {/* 角色舞台 */}
+          <CharacterStage
+            prosecutorName={currentCase.prosecutor.name}
+            prosecutorStyle={currentCase.prosecutor.style}
+            playerName={player.name}
+            currentWitness={currentWitness}
+            defendantName={currentCase.defendant.name}
+          />
+
+          {/* 对话消息流 */}
+          <Panel
+            variant="default"
+            padding="none"
+            className="flex-1 min-h-0 flex flex-col mt-3"
+          >
+            <div className="flex-1 overflow-y-auto touch-scroll p-3 sm:p-4 space-y-2 sm:space-y-3">
+              {courtroom.messages.map((msg) => (
+                <MessageBubble key={msg.id} message={msg} />
+              ))}
+              {isProcessing && <TypingIndicator />}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* 输入区域 */}
+            <div className="border-t-[3px] border-ink-line bg-surface-sunken p-3 sm:p-4 space-y-2">
+              <div className="flex gap-2">
+                <TextArea
+                  ref={inputRef}
+                  value={playerInput}
+                  onChange={(e) => setPlayerInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmit();
+                    }
+                  }}
+                  placeholder={
+                    currentWitness
+                      ? `向 ${currentWitness.name} 提问...`
+                      : '请先传唤一位证人...'
+                  }
+                  className="flex-1 min-h-[52px] max-h-[120px]"
+                  disabled={isProcessing}
+                />
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!playerInput.trim() || isProcessing}
+                  size="md"
+                  className="self-stretch px-4"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* 快捷按钮行 */}
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                <Button
+                  onClick={handleObjection}
+                  variant="danger"
+                  size="sm"
+                  disabled={isProcessing || !playerInput.trim()}
+                  className="!min-h-[40px]"
+                >
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  异议
+                </Button>
+                <Button
+                  onClick={() => setShowEvidenceModal(true)}
+                  variant="info"
+                  size="sm"
+                  disabled={isProcessing}
+                  className="!min-h-[40px]"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  出示
+                </Button>
+                <Button
+                  onClick={() => setShowWitnessSelect(true)}
+                  variant="ghost"
+                  size="sm"
+                  disabled={isProcessing}
+                  className="!min-h-[40px]"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  传唤
+                </Button>
+                <Button
+                  onClick={handleRequestHint}
+                  variant="ghost"
+                  size="sm"
+                  disabled={isProcessing}
+                  className="!min-h-[40px]"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  提示 ${GAME_CONSTANTS.HINT_COST}
+                </Button>
+                <Button
+                  onClick={handleRequestClosing}
+                  variant="success"
+                  size="sm"
+                  disabled={isProcessing || courtroom.closingRequested}
+                  className="!min-h-[40px] ml-auto"
+                  title="申请结案陈词"
+                >
+                  <Flag className="w-3.5 h-3.5" />
+                  结案
+                </Button>
+              </div>
+            </div>
+          </Panel>
+        </div>
+
+        {/* 右侧：陪审团 + 证据卷宗（PC 端常显，移动端抽屉） */}
+        <SidePanel
+          showOnMobile={showSidePanel}
+          onCloseMobile={() => setShowSidePanel(false)}
+          jury={courtroom.jury}
+          averageSentiment={courtroom.averageJurySentiment}
+          evidence={currentCase.evidence}
+          brokenLocks={brokenLocks.length}
+          totalLocks={currentCase.logicalLocks.length}
         />
       </div>
 
-      {/* PC端保持原布局 */}
-      <div className="hidden md:block">
-        <StatusBar />
-      
-        {/* 异议效果 */}
-        <AnimatePresence>
-          {showObjectionEffect && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-            >
-              <div className="font-pixel-title text-4xl sm:text-6xl text-pixel-red glow-text">
-                突破！
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* ============== 弹窗 ============== */}
 
-        {/* PC端网格布局 */}
-        <div className="pt-16 pb-4 px-4 h-screen">
-        <div className="flex-1 grid grid-cols-12 gap-4 h-[calc(100vh-5rem)]">
-          {/* 左侧：玩家信息和工具 */}
-          <div className="col-span-3 space-y-3 overflow-y-auto">
-            {/* 玩家（辩护律师） */}
-            <Panel variant="highlight" className="text-center">
-              <User className="w-8 h-8 mx-auto text-pixel-gold mb-2" />
-              <p className="font-pixel-title text-xs text-pixel-gold">辩护律师</p>
-              <p className="font-pixel-body text-sm text-pixel-light">{player.name}</p>
-            </Panel>
-
-            {/* 工具按钮 */}
-            <div className="space-y-2">
-              <Button
-                onClick={() => setShowWitnessSelect(true)}
-                variant="ghost"
-                className="w-full text-xs"
-                disabled={isProcessing}
-              >
-                <Users className="w-4 h-4 mr-1" />
-                传唤证人
-              </Button>
-              <Button
-                onClick={handleRequestHint}
-                variant="ghost"
-                className="w-full text-xs"
-                disabled={isProcessing}
-              >
-                <HelpCircle className="w-4 h-4 mr-1" />
-                求助 (${GAME_CONSTANTS.HINT_COST})
-              </Button>
-            </div>
-          </div>
-
-          {/* 中间：对话区域 */}
-          <div className="col-span-6 flex flex-col">
-            {/* 法官（上） */}
-            <Panel variant="default" className="mb-3 text-center py-2">
-              <Gavel className="w-6 h-6 mx-auto text-pixel-gold mb-1" />
-              <p className="font-pixel-title text-xs text-pixel-gold">
-                {courtroom.judge.name}
-              </p>
-              <div className="flex items-center justify-center gap-2 mt-1">
-                <span className="text-xs text-pixel-gray">耐心:</span>
-                <div className="w-20 h-2 bg-pixel-dark border border-pixel-gray">
-                  <div 
-                    className={cn(
-                      'h-full transition-all',
-                      courtroom.judge.patience > 60 ? 'bg-pixel-green' :
-                      courtroom.judge.patience > 30 ? 'bg-yellow-400' : 'bg-pixel-red'
-                    )}
-                    style={{ width: `${courtroom.judge.patience}%` }}
-                  />
-                </div>
-              </div>
-            </Panel>
-
-            {/* 证人（中）*/}
-            {currentWitness && (
-              <Panel variant="default" className="mb-3 text-center py-2">
-                <p className="font-pixel-title text-xs text-pixel-gold">
-                  证人: {currentWitness.name}
-                </p>
-                <p className="text-xs text-pixel-gray">{currentWitness.role}</p>
-                <span className={cn(
-                  'inline-block mt-1 px-2 py-0.5 border text-xs',
-                  getEmotionDisplay(currentWitness.currentEmotion).color
-                )}>
-                  {getEmotionDisplay(currentWitness.currentEmotion).text}
-                </span>
-              </Panel>
-            )}
-
-            {/* 对话记录 */}
-            <Panel variant="dark" className="flex-1 overflow-hidden flex flex-col">
-              <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-2">
-                {courtroom.messages.map((msg) => (
-                  <MessageBubble key={msg.id} message={msg} />
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* 输入区域 */}
-              <div className="border-t border-pixel-gray/30 pt-3">
-                <div className="flex gap-2">
-                  <TextArea
-                    ref={inputRef}
-                    value={playerInput}
-                    onChange={(e) => setPlayerInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSubmit();
-                      }
-                    }}
-                    placeholder="输入你的发言或问题..."
-                    className="flex-1 min-h-[60px] max-h-[100px]"
-                    disabled={isProcessing}
-                  />
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={!playerInput.trim() || isProcessing}
-                      className="px-4"
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      onClick={handleRequestClosing}
-                      variant="danger"
-                      disabled={isProcessing || courtroom.closingRequested}
-                      className="px-2 text-xs"
-                      title="申请结案"
-                    >
-                      结案
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </Panel>
-          </div>
-
-          {/* 右侧：检方和陪审团 */}
-          <div className="col-span-3 space-y-3 overflow-y-auto">
-            {/* 检察官 */}
-            <Panel variant="default" className="text-center">
-              <User className="w-8 h-8 mx-auto text-pixel-red mb-2" />
-              <p className="font-pixel-title text-xs text-pixel-red">检察官</p>
-              <p className="font-pixel-body text-sm text-pixel-light">
-                {currentCase.prosecutor.name}
-              </p>
-              <p className="text-xs text-pixel-gray mt-1">
-                {getProsecutorStyleName(currentCase.prosecutor.style)}
-              </p>
-            </Panel>
-
-            {/* 陪审团 */}
-            <JuryPanel 
-              jury={courtroom.jury}
-              averageSentiment={courtroom.averageJurySentiment}
-            />
-
-            {/* 案件信息 */}
-            <Panel variant="dark">
-              <h3 className="font-pixel-title text-xs text-pixel-gold mb-2">
-                被告
-              </h3>
-              <p className="text-sm text-pixel-light">
-                {currentCase.defendant.name}
-              </p>
-              <p className="text-xs text-pixel-gray">
-                {currentCase.defendant.occupation}, {currentCase.defendant.age}岁
-              </p>
-            </Panel>
-          </div>
-        </div>
-      </div>
-      </div>
-
-      {/* PC端证人选择弹窗 */}
+      {/* 传唤证人 */}
       <Modal
         isOpen={showWitnessSelect}
         onClose={() => setShowWitnessSelect(false)}
         title="传唤证人"
+        icon={<Users className="w-4 h-4" />}
       >
-        <div className="space-y-3">
-          {currentCase.witnesses.map(witness => (
-            <button
-              key={witness.id}
-              onClick={() => handleCallWitness(witness)}
-              className={cn(
-                'w-full p-3 text-left border-2 transition-all',
-                'bg-pixel-dark border-pixel-gray hover:border-pixel-gold',
-                witness.id === courtroom.currentWitnessId && 'border-pixel-gold bg-court-accent'
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-pixel-body text-pixel-light">{witness.name}</p>
-                  <p className="text-xs text-pixel-gray">{witness.role}</p>
-                </div>
-                {witness.hasBroken && (
-                  <span className="text-xs text-pixel-red">已崩溃</span>
+        <div className="space-y-2">
+          {currentCase.witnesses.map((witness) => {
+            const emotion = getEmotionDisplay(witness.currentEmotion);
+            const isActive = witness.id === courtroom.currentWitnessId;
+            return (
+              <button
+                key={witness.id}
+                onClick={() => handleCallWitness(witness)}
+                className={cn(
+                  'w-full p-3 text-left border-[3px] transition-all min-h-[64px]',
+                  'shadow-pixel-sm hover:shadow-pixel',
+                  'flex items-center gap-3',
+                  isActive
+                    ? 'bg-brand-gold/15 border-brand-gold'
+                    : 'bg-surface-overlay border-ink-line hover:border-brand-gold'
                 )}
-              </div>
-            </button>
-          ))}
+              >
+                <div className="w-10 h-10 flex items-center justify-center bg-surface-sunken border-2 border-ink-line text-2xl shrink-0">
+                  {emotion.emoji}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-pixel-body text-base text-ink-primary truncate">
+                      {witness.name}
+                    </p>
+                    {isActive && (
+                      <span className="pixel-badge-gold">作证中</span>
+                    )}
+                    {witness.hasBroken && (
+                      <span className="pixel-badge-red">崩溃</span>
+                    )}
+                  </div>
+                  <p className="font-pixel-body text-sm text-ink-tertiary mt-0.5">
+                    {witness.role} · {witness.age} 岁
+                  </p>
+                </div>
+                <span
+                  className={cn('text-xs font-pixel-title', emotion.color)}
+                >
+                  {emotion.text}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </Modal>
 
-      {/* 提示弹窗 */}
+      {/* 出示证据 */}
+      <Modal
+        isOpen={showEvidenceModal}
+        onClose={() => setShowEvidenceModal(false)}
+        title="出示证据"
+        icon={<FileText className="w-4 h-4" />}
+      >
+        <p className="font-pixel-body text-sm text-ink-tertiary mb-3">
+          选择一份证据出示给法庭：
+        </p>
+        <div className="space-y-2 max-h-96 overflow-y-auto touch-scroll">
+          {currentCase.evidence
+            .filter((e) => e.discovered)
+            .map((e) => (
+              <button
+                key={e.id}
+                onClick={() => handlePresentEvidence(e)}
+                className={cn(
+                  'w-full p-3 text-left border-[3px] transition-all',
+                  'shadow-pixel-sm hover:shadow-pixel min-h-[60px]',
+                  e.isKeyEvidence
+                    ? 'bg-brand-gold/10 border-brand-gold'
+                    : 'bg-surface-overlay border-ink-line hover:border-brand-gold'
+                )}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="font-pixel-body text-base text-ink-primary">
+                    {e.name}
+                  </p>
+                  {e.isKeyEvidence && (
+                    <Sparkles className="w-3.5 h-3.5 text-brand-gold" />
+                  )}
+                </div>
+                <p className="font-pixel-body text-xs text-ink-tertiary line-clamp-2">
+                  {e.description}
+                </p>
+              </button>
+            ))}
+        </div>
+      </Modal>
+
+      {/* 提示 */}
       <Modal
         isOpen={showHintModal}
         onClose={() => setShowHintModal(false)}
-        title="合伙人提示"
+        title="合伙人的建议"
+        icon={<HelpCircle className="w-4 h-4" />}
       >
-        <div className="space-y-4">
-          <p className="text-pixel-light">{currentHint}</p>
-          <p className="text-xs text-pixel-gray">— 来自资深合伙人的建议</p>
+        <div className="space-y-3">
+          <Panel variant="overlay" padding="md">
+            <p className="font-pixel-body text-base text-ink-primary leading-relaxed">
+              {currentHint}
+            </p>
+          </Panel>
+          <p className="font-pixel-body text-xs text-ink-tertiary text-right">
+            — 来自资深合伙人
+          </p>
+          <Button
+            onClick={() => setShowHintModal(false)}
+            fullWidth
+            size="md"
+          >
+            收到
+          </Button>
         </div>
       </Modal>
     </div>
   );
 }
 
-// 消息气泡组件 - 使用 memo 优化渲染
-const MessageBubble = memo(function MessageBubble({ message }: { message: CourtroomMessage }) {
-  const getSpeakerStyle = () => {
-    switch (message.speaker) {
-      case 'player':
-        return 'bg-court-accent border-pixel-gold ml-4 sm:ml-8';
-      case 'witness':
-        return 'bg-pixel-dark border-pixel-blue mr-4 sm:mr-8';
-      case 'prosecutor':
-        return 'bg-red-900/30 border-pixel-red mr-4 sm:mr-8';
-      case 'judge':
-        return 'bg-yellow-900/30 border-yellow-600 mx-2 sm:mx-8';
-      case 'system':
-        return 'bg-pixel-dark/50 border-pixel-gray mx-2 sm:mx-12 text-center italic';
-      default:
-        return 'bg-pixel-dark border-pixel-gray';
-    }
+// ============== 顶部法官席 ==============
+function JudgeHeader({
+  judgeName,
+  patience,
+  phase,
+  onExit,
+  onTogglePanel,
+}: {
+  judgeName: string;
+  patience: number;
+  phase: string;
+  onExit: () => void;
+  onTogglePanel: () => void;
+}) {
+  const isPatienceLow = patience < 30;
+  const isPatienceHigh = patience > 60;
+  const patienceColor = isPatienceHigh
+    ? 'bg-game-green'
+    : isPatienceLow
+      ? 'bg-game-red'
+      : 'bg-game-yellow';
+
+  const phaseLabel = {
+    opening: '开庭',
+    examination: '质询',
+    objection: '辩论',
+    closing: '结案',
+  }[phase] || '庭审';
+
+  return (
+    <div className="shrink-0 bg-surface-sunken/95 backdrop-blur-md border-b-[3px] border-brand-gold safe-top">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-3">
+        <button
+          onClick={onExit}
+          className="shrink-0 w-9 h-9 flex items-center justify-center border-[3px] border-ink-line bg-surface-overlay hover:border-game-red hover:text-game-red text-ink-secondary transition-colors"
+          title="退出庭审"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        <div className="shrink-0 w-9 h-9 sm:w-10 sm:h-10 bg-brand-gold border-[3px] border-brand-gold-deep flex items-center justify-center shadow-pixel-sm">
+          <Gavel
+            className={cn(
+              'w-4 h-4 sm:w-5 sm:h-5 text-brand-ink',
+              isPatienceLow && 'animate-pixel-heartbeat'
+            )}
+          />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-2 mb-0.5">
+            <p className="font-pixel-title text-xs sm:text-sm text-brand-gold truncate">
+              {judgeName}
+            </p>
+            <span className="pixel-badge text-[9px]">{phaseLabel}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-pixel-title text-[9px] text-ink-tertiary uppercase tracking-wider hidden sm:inline">
+              耐心
+            </span>
+            <div
+              className={cn(
+                'pixel-bar-track flex-1 max-w-xs',
+                isPatienceLow && 'animate-pixel-heartbeat'
+              )}
+            >
+              <motion.div
+                className={cn('pixel-bar-fill', patienceColor)}
+                initial={{ width: '100%' }}
+                animate={{ width: `${patience}%` }}
+              />
+            </div>
+            <span className="font-pixel-title text-xs tabular-nums text-ink-secondary shrink-0">
+              {Math.round(patience)}
+            </span>
+          </div>
+        </div>
+
+        <button
+          onClick={onTogglePanel}
+          className="shrink-0 w-9 h-9 flex items-center justify-center border-[3px] border-ink-line bg-surface-overlay hover:border-brand-gold text-ink-secondary lg:hidden"
+          title="陪审团 / 证据"
+        >
+          <Users className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============== 角色舞台 ==============
+function CharacterStage({
+  prosecutorName,
+  prosecutorStyle,
+  playerName,
+  currentWitness,
+  defendantName,
+}: {
+  prosecutorName: string;
+  prosecutorStyle: string;
+  playerName: string;
+  currentWitness?: Witness;
+  defendantName: string;
+}) {
+  const witnessEmotion = currentWitness
+    ? getEmotionDisplay(currentWitness.currentEmotion)
+    : null;
+
+  return (
+    <div className="shrink-0 grid grid-cols-3 gap-2 sm:gap-3">
+      {/* 检察官 */}
+      <CharacterCard
+        side="left"
+        icon={<Sword className="w-4 h-4" />}
+        title="检察官"
+        name={prosecutorName}
+        sub={getProsecutorStyleName(prosecutorStyle)}
+        color="game-red"
+        emoji="👨‍⚖️"
+      />
+
+      {/* 证人/被告 */}
+      <CharacterCard
+        side="center"
+        icon={
+          witnessEmotion ? (
+            <span className="text-base">{witnessEmotion.emoji}</span>
+          ) : (
+            <span className="text-base">🧑</span>
+          )
+        }
+        title={currentWitness ? '证人' : '被告'}
+        name={currentWitness?.name || defendantName}
+        sub={currentWitness?.role || '等待传唤'}
+        color="game-yellow"
+        emoji=""
+        meta={
+          witnessEmotion ? (
+            <span className={cn('font-pixel-title text-[9px]', witnessEmotion.color)}>
+              {witnessEmotion.text}
+            </span>
+          ) : undefined
+        }
+      />
+
+      {/* 辩护律师 */}
+      <CharacterCard
+        side="right"
+        icon={<Shield className="w-4 h-4" />}
+        title="辩护律师"
+        name={playerName}
+        sub="你"
+        color="game-blue"
+        emoji="🤵"
+      />
+    </div>
+  );
+}
+
+function CharacterCard({
+  icon,
+  title,
+  name,
+  sub,
+  color,
+  emoji,
+  meta,
+}: {
+  side?: 'left' | 'center' | 'right';
+  icon: React.ReactNode;
+  title: string;
+  name: string;
+  sub: string;
+  color: 'game-red' | 'game-blue' | 'game-yellow';
+  emoji: string;
+  meta?: React.ReactNode;
+}) {
+  const colorClasses = {
+    'game-red': 'border-game-red',
+    'game-blue': 'border-game-blue',
+    'game-yellow': 'border-game-yellow',
+  };
+  const textColorClasses = {
+    'game-red': 'text-game-red',
+    'game-blue': 'text-game-blue',
+    'game-yellow': 'text-game-yellow',
+  };
+  return (
+    <div
+      className={cn(
+        'p-2 sm:p-2.5 bg-surface-raised border-[3px] shadow-pixel-sm flex flex-col items-center text-center min-h-[80px] sm:min-h-[92px]',
+        colorClasses[color]
+      )}
+    >
+      <div className="flex items-center gap-1 mb-1">
+        {emoji && <span className="text-lg sm:text-xl">{emoji}</span>}
+        {icon && <span className={textColorClasses[color]}>{icon}</span>}
+      </div>
+      <p
+        className={cn(
+          'font-pixel-title text-[9px] uppercase tracking-wider',
+          textColorClasses[color]
+        )}
+      >
+        {title}
+      </p>
+      <p className="font-pixel-body text-xs sm:text-sm text-ink-primary mt-0.5 truncate max-w-full">
+        {name}
+      </p>
+      <p className="font-pixel-body text-[10px] sm:text-xs text-ink-tertiary truncate max-w-full">
+        {sub}
+      </p>
+      {meta && <div className="mt-1">{meta}</div>}
+    </div>
+  );
+}
+
+// ============== 侧边栏 ==============
+function SidePanel({
+  showOnMobile,
+  onCloseMobile,
+  jury,
+  averageSentiment,
+  evidence,
+  brokenLocks,
+  totalLocks,
+}: {
+  showOnMobile: boolean;
+  onCloseMobile: () => void;
+  jury: import('@/types').JuryMember[];
+  averageSentiment: number;
+  evidence: Evidence[];
+  brokenLocks: number;
+  totalLocks: number;
+}) {
+  return (
+    <>
+      {/* PC 端常显 */}
+      <aside className="hidden lg:flex flex-col w-72 xl:w-80 shrink-0 space-y-3 overflow-y-auto touch-scroll">
+        <JuryPanel jury={jury} averageSentiment={averageSentiment} />
+        <EvidencePanel evidence={evidence} defaultExpanded />
+        <ProgressPanel broken={brokenLocks} total={totalLocks} />
+      </aside>
+
+      {/* 移动端抽屉 */}
+      <AnimatePresence>
+        {showOnMobile && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onCloseMobile}
+            className="lg:hidden fixed inset-0 z-40 bg-surface-base/80 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              onClick={(e) => e.stopPropagation()}
+              className="absolute top-0 right-0 bottom-0 w-[88vw] max-w-sm bg-surface-base border-l-[3px] border-brand-gold flex flex-col"
+            >
+              <div className="flex items-center justify-between p-3 border-b-[3px] border-ink-line bg-surface-overlay">
+                <h3 className="font-pixel-title text-sm text-brand-gold">
+                  战场信息
+                </h3>
+                <button
+                  onClick={onCloseMobile}
+                  className="w-9 h-9 flex items-center justify-center border-[3px] border-ink-line bg-surface-sunken text-ink-secondary hover:border-game-red hover:text-game-red"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto touch-scroll p-3 space-y-3 safe-bottom">
+                <JuryPanel
+                  jury={jury}
+                  averageSentiment={averageSentiment}
+                  compact
+                />
+                <EvidencePanel evidence={evidence} defaultExpanded />
+                <ProgressPanel broken={brokenLocks} total={totalLocks} />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+function ProgressPanel({ broken, total }: { broken: number; total: number }) {
+  const percent = total > 0 ? (broken / total) * 100 : 0;
+  return (
+    <Panel variant="dark" padding="sm">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <Scale className="w-4 h-4 text-game-purple" />
+          <h3 className="font-pixel-title text-[10px] text-game-purple uppercase tracking-wider">
+            破解进度
+          </h3>
+        </div>
+        <span className="font-pixel-title text-xs text-ink-primary tabular-nums">
+          {broken} / {total}
+        </span>
+      </div>
+      <div className="pixel-bar-track">
+        <motion.div
+          className="pixel-bar-fill bg-game-purple"
+          initial={{ width: 0 }}
+          animate={{ width: `${percent}%` }}
+          transition={{ duration: 0.6 }}
+        />
+      </div>
+      <p className="font-pixel-body text-xs text-ink-tertiary mt-2 leading-snug">
+        破解一半逻辑锁后可申请结案
+      </p>
+    </Panel>
+  );
+}
+
+// ============== 消息气泡 ==============
+const MessageBubble = memo(function MessageBubble({
+  message,
+}: {
+  message: CourtroomMessage;
+}) {
+  if (message.speaker === 'system') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex justify-center my-2"
+      >
+        <div
+          className={cn(
+            'pixel-dialog-system px-3 py-1.5 max-w-[85%]',
+            message.isKeyMoment &&
+              'border-brand-gold bg-brand-gold/10 text-brand-gold'
+          )}
+        >
+          <p className="font-pixel-body text-sm">{message.content}</p>
+        </div>
+      </motion.div>
+    );
+  }
+
+  const isPlayer = message.speaker === 'player';
+  const styleByRole: Record<string, { dialog: string; speaker: string }> = {
+    player: {
+      dialog: 'pixel-dialog-player',
+      speaker: 'text-game-blue',
+    },
+    witness: {
+      dialog: 'pixel-dialog-witness',
+      speaker: 'text-ink-primary',
+    },
+    prosecutor: {
+      dialog: 'pixel-dialog-prosecutor',
+      speaker: 'text-game-red',
+    },
+    judge: {
+      dialog: 'pixel-dialog-judge',
+      speaker: 'text-brand-gold',
+    },
   };
 
-  const getSpeakerColor = () => {
-    switch (message.speaker) {
-      case 'player':
-        return 'text-pixel-gold';
-      case 'witness':
-        return 'text-pixel-blue';
-      case 'prosecutor':
-        return 'text-pixel-red';
-      case 'judge':
-        return 'text-yellow-400';
-      default:
-        return 'text-pixel-gray';
-    }
-  };
+  const style = styleByRole[message.speaker] || styleByRole.witness;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={cn(
-        'p-2 sm:p-3 border-2 rounded',
-        getSpeakerStyle(),
-        message.isKeyMoment && 'ring-2 ring-yellow-400'
-      )}
+      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.2 }}
+      className={cn('flex', isPlayer ? 'justify-end' : 'justify-start')}
     >
-      {message.speaker !== 'system' && (
-        <p className={cn('font-pixel-title text-[10px] sm:text-xs mb-0.5 sm:mb-1', getSpeakerColor())}>
-          {message.speakerName}
+      <div
+        className={cn(
+          'max-w-[88%] sm:max-w-[80%]',
+          style.dialog,
+          message.isKeyMoment && 'animate-pixel-glow border-brand-gold'
+        )}
+      >
+        <div className="flex items-center gap-2 mb-1">
+          <p
+            className={cn(
+              'font-pixel-title text-[10px] sm:text-xs uppercase tracking-wider',
+              style.speaker
+            )}
+          >
+            {message.speakerName}
+          </p>
           {message.emotion && (
-            <span className="ml-1 sm:ml-2 text-pixel-gray text-[10px]">
-              ({message.emotion})
+            <span className="font-pixel-body text-[10px] text-ink-tertiary">
+              [{message.emotion}]
             </span>
           )}
+          {message.isKeyMoment && (
+            <span className="pixel-badge-gold !text-[8px] !px-1.5 !py-0">
+              <Sparkles className="w-2.5 h-2.5" />
+              关键
+            </span>
+          )}
+        </div>
+        <p className="font-pixel-body text-sm sm:text-base text-ink-primary leading-relaxed whitespace-pre-wrap">
+          {message.content}
         </p>
-      )}
-      <p className="font-pixel-body text-xs sm:text-sm text-pixel-light whitespace-pre-wrap">
-        {message.content}
-      </p>
-      {message.isKeyMoment && (
-        <span className="text-[10px] sm:text-xs text-yellow-400 mt-1 block">⚡ 关键</span>
-      )}
+      </div>
     </motion.div>
   );
 });
+
+function TypingIndicator() {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="flex justify-start"
+    >
+      <div className="pixel-dialog px-3 py-2 inline-flex items-center gap-1.5">
+        <span className="w-2 h-2 bg-brand-gold animate-pixel-pulse" />
+        <span
+          className="w-2 h-2 bg-brand-gold animate-pixel-pulse"
+          style={{ animationDelay: '0.2s' }}
+        />
+        <span
+          className="w-2 h-2 bg-brand-gold animate-pixel-pulse"
+          style={{ animationDelay: '0.4s' }}
+        />
+      </div>
+    </motion.div>
+  );
+}

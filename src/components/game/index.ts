@@ -9,4 +9,5 @@ export * from './EvidencePanel';
 export * from './PerformanceMonitor';
 export * from './AIDiagnostics';
 export * from './MobileCourtroomView';
-
+export * from './ObjectionEffect';
+export * from './FloatingText';
