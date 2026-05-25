@@ -19,7 +19,9 @@ services:
     branch: main
     autoDeploy: true
 
-    buildCommand: npm install && npm run build
+    # --include=dev 强制装 devDependencies（typescript/vite/tailwind 等都在那里）。
+    # 否则 NODE_ENV=production 会让 npm install 跳过 devDeps，导致 tsc 找不到。
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
 
     envVars:
